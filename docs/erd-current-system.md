@@ -512,3 +512,48 @@ means one record may be related to many records.
 `approvals.reference_type` identifies the type of record approved, but the
 current schema has no `reference_id`. It therefore has no direct foreign-key
 connection to a property request, assignment, or disposal record.
+
+## Relationship labels for the ERD image
+
+Place these labels at the center of the matching PK-to-FK connector in Draw.io.
+
+```text
+USERS.id → ADMINS.user_id                         has admin profile
+USERS.id → STAFF.user_id                          has staff profile
+USERS.id → TEACHERS.user_id                       has teacher profile
+USERS.id → PROFILE_PHOTOS.user_id                 has profile photo
+
+USERS.id → PROPERTIES.created_by                  creates
+STAFF.id → PROPERTIES.staff_id                    manages
+PROPERTY_CATEGORIES.id → PROPERTIES.property_category_id
+                                                    categorizes
+LOCATIONS.id → PROPERTIES.location_id             stores
+
+PROPERTIES.id → PROPERTY_UNITS.property_id        contains
+PROPERTIES.id → ASSIGNMENTS.property_id           is assigned through
+USERS.id → ASSIGNMENTS.teacher_id                 receives
+TEACHERS.id → ASSIGNMENTS.teacher_profile_id      has assignments
+USERS.id → ASSIGNMENTS.assigned_by                issues
+STAFF.id → ASSIGNMENTS.staff_id                   processes
+LOCATIONS.id → ASSIGNMENTS.location_id            is assigned at
+ASSIGNMENTS.id → PROPERTY_UNITS.assignment_id     includes units
+ASSIGNMENTS.id → RETURNS.assignment_id            has returns
+USERS.id → RETURNS.returned_by                    records return
+
+USERS.id → PROPERTY_REQUESTS.requested_by         submits
+USERS.id → PROPERTY_REQUESTS.reviewed_by          reviews
+USERS.id → PROPERTY_REQUESTS.processed_by         processes
+PROPERTIES.id → PROPERTY_REQUESTS.selected_property_id
+                                                    is selected for
+ASSIGNMENTS.id → PROPERTY_REQUESTS.assignment_id  fulfills
+
+PROPERTIES.id → DISPOSALS.property_id             is disposed through
+ASSIGNMENTS.id → DISPOSALS.assignment_id          is source of
+USERS.id → DISPOSALS.disposed_by                  submits disposal
+USERS.id → DISPOSALS.processed_by                 processes disposal
+ADMINS.id → DISPOSALS.admin_id                    reviews
+DISPOSAL_METHODS.id → DISPOSALS.disposal_method_id
+                                                    uses method
+PROPERTIES.id → PROPERTY_HISTORIES.property_id    has history
+ADMINS.id → APPROVALS.admin_id                    records
+```
