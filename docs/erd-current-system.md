@@ -305,125 +305,167 @@ definitions are in `data-dictionary-current-system.md`.
 
 ```text
 USERS
-  PK  id
-      name
-  UQ  email
-      password
-      role                 [admin | staff | teacher]
-      is_active
-      email_verified_at
-      created_at, updated_at
+- id (PK)
+- name
+- email (UQ)
+- password
+- role [admin, staff, teacher]
+- is_active
+- email_verified_at
+- created_at
+- updated_at
 
-ADMINS                         STAFF                          TEACHERS
-  PK  id                         PK  id                         PK  id
-  FK  user_id (UQ)               FK  user_id (UQ)               FK  user_id (UQ)
-      department                     employee_number                 employee_number
-                                     department                      subject_area
+ADMINS
+- id (PK)
+- user_id (FK, UQ)
+- department
+
+STAFF
+- id (PK)
+- user_id (FK, UQ)
+- employee_number
+- department
+
+TEACHERS
+- id (PK)
+- user_id (FK, UQ)
+- employee_number
+- subject_area
 
 PROFILE_PHOTOS
-  PK  id
-  FK  user_id (UQ)
-      mime_type
-      contents
+- id (PK)
+- user_id (FK, UQ)
+- mime_type
+- contents
+- created_at
+- updated_at
 
-PROPERTY_CATEGORIES            LOCATIONS
-  PK  id                         PK  id
-  UQ  category_name              UQ  location_name
-      description                    building
-                                     room
-                                     description
+PROPERTY_CATEGORIES
+- id (PK)
+- category_name (UQ)
+- description
+
+LOCATIONS
+- id (PK)
+- location_name (UQ)
+- building
+- room
+- description
 
 PROPERTIES
-  PK  id
-  UQ  property_code
-      property_name
-  FK  property_category_id
-  FK  location_id
-  FK  created_by
-  FK  staff_id
-  UQ  serial_number
-      quantity
-      unit
-      unit_cost
-      status               [available | assigned | for_disposal | disposed]
-      condition_status
-      department
-      office
-      date_acquired
-  UQ  qr_token
+- id (PK)
+- property_code (UQ)
+- property_name
+- property_category_id (FK)
+- location_id (FK)
+- created_by (FK)
+- staff_id (FK)
+- serial_number (UQ)
+- quantity
+- unit
+- unit_cost
+- status [available, assigned, for_disposal, disposed]
+- condition_status
+- department
+- office
+- date_acquired
+- qr_token (UQ)
+- created_at
+- updated_at
 
 PROPERTY_UNITS
-  PK  id
-  FK  property_id
-  FK  assignment_id
-  UQ  serial_number
-  UQ  qr_token
-      status               [available | assigned | disposed]
+- id (PK)
+- property_id (FK)
+- assignment_id (FK)
+- serial_number (UQ)
+- qr_token (UQ)
+- status [available, assigned, disposed]
+- created_at
+- updated_at
 
 ASSIGNMENTS
-  PK  id
-  FK  property_id
-  FK  teacher_id           (actual assignee: teacher or staff user)
-  FK  teacher_profile_id
-  FK  assigned_by
-  FK  staff_id
-  FK  location_id
-      quantity_assigned
-      department
-      date_assigned
-      expected_return_date
-      returned_at
-      status               [active | returned | transferred | disposed]
+- id (PK)
+- property_id (FK)
+- teacher_id (FK)
+- teacher_profile_id (FK)
+- assigned_by (FK)
+- staff_id (FK)
+- location_id (FK)
+- quantity_assigned
+- department
+- date_assigned
+- expected_return_date
+- returned_at
+- status [active, returned, transferred, disposed]
+- remarks
+- created_at
+- updated_at
 
 PROPERTY_REQUESTS
-  PK  id
-  FK  requested_by
-  FK  reviewed_by
-  FK  processed_by
-  FK  selected_property_id
-  FK  assignment_id (UQ)
-      requested_item_name
-      requested_quantity
-      needed_by
-      purpose
-      status               [pending | awaiting_admin | awaiting_stock |
-                            approved | rejected | fulfilled]
-      reviewed_at
-      processed_at
+- id (PK)
+- requested_by (FK)
+- reviewed_by (FK)
+- processed_by (FK)
+- selected_property_id (FK)
+- assignment_id (FK, UQ)
+- requested_item_name
+- requested_quantity
+- needed_by
+- purpose
+- additional_notes
+- review_notes
+- response_notes
+- status [pending, awaiting_admin, awaiting_stock, approved, rejected, fulfilled]
+- reviewed_at
+- processed_at
+- created_at
+- updated_at
 
 RETURNS
-  PK  id
-  FK  assignment_id
-  FK  returned_by
-      return_date
-      returned_serial_numbers
-      status
-      remarks
+- id (PK)
+- assignment_id (FK)
+- returned_by (FK)
+- return_date
+- returned_serial_numbers
+- status
+- remarks
 
 DISPOSAL_METHODS
-  PK  id
-  UQ  method_name
-      description
+- id (PK)
+- method_name (UQ)
+- description
 
 DISPOSALS
-  PK  id
-  FK  property_id
-  FK  assignment_id
-  FK  disposed_by
-  FK  processed_by
-  FK  admin_id
-  FK  disposal_method_id
-      quantity_disposed
-      disposal_date
-      disposal_reason
-      status               [pending | approved | completed | cancelled]
-      processed_at
+- id (PK)
+- property_id (FK)
+- assignment_id (FK)
+- disposed_by (FK)
+- processed_by (FK)
+- admin_id (FK)
+- disposal_method_id (FK)
+- quantity_disposed
+- disposal_date
+- disposal_reason
+- disposal_method
+- response_notes
+- status [pending, approved, completed, cancelled]
+- processed_at
+- created_at
+- updated_at
 
-PROPERTY_HISTORIES             APPROVALS
-  PK  id                         PK  id
-  FK  property_id                 FK  admin_id
-      action_type                     reference_type
-      reference                       approval_status
-      action_date                     approval_date
-      remarks                         remarks
+PROPERTY_HISTORIES
+- id (PK)
+- property_id (FK)
+- action_type
+- reference
+- action_date
+- remarks
+
+APPROVALS
+- id (PK)
+- admin_id (FK)
+- reference_type
+- approval_status
+- approval_date
+- remarks
 ```
