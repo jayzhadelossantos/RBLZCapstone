@@ -469,3 +469,46 @@ APPROVALS
 - approval_date
 - remarks
 ```
+
+## Relationships and descriptions
+
+`1 : 0..1` means one record is related to zero or one record. `1 : 0..*`
+means one record may be related to many records.
+
+| Parent table | Child table | Connected fields | Relationship | Description |
+| --- | --- | --- | --- | --- |
+| Users | Admins | `users.id` → `admins.user_id` | 1 : 0..1 | A user account may have one administrator profile. |
+| Users | Staff | `users.id` → `staff.user_id` | 1 : 0..1 | A user account may have one staff profile. |
+| Users | Teachers | `users.id` → `teachers.user_id` | 1 : 0..1 | A user account may have one teacher profile. |
+| Users | Profile Photos | `users.id` → `profile_photos.user_id` | 1 : 0..1 | A user may save one profile picture. |
+| Users | Properties | `users.id` → `properties.created_by` | 1 : 0..* | A user may create many property records. |
+| Staff | Properties | `staff.id` → `properties.staff_id` | 1 : 0..* | A staff profile may manage many property records. |
+| Property Categories | Properties | `property_categories.id` → `properties.property_category_id` | 1 : 0..* | A category can classify many properties. |
+| Locations | Properties | `locations.id` → `properties.location_id` | 1 : 0..* | A location can contain many property records. |
+| Properties | Property Units | `properties.id` → `property_units.property_id` | 1 : 0..* | A property record contains physical units. Each unit has its own serial number and QR token. |
+| Properties | Assignments | `properties.id` → `assignments.property_id` | 1 : 0..* | A property may appear in many assignments throughout its lifecycle. |
+| Users | Assignments | `users.id` → `assignments.teacher_id` | 1 : 0..* | A teacher or staff user may receive many property assignments. |
+| Teachers | Assignments | `teachers.id` → `assignments.teacher_profile_id` | 1 : 0..* | A teacher profile may be linked to many assignments. |
+| Users | Assignments | `users.id` → `assignments.assigned_by` | 1 : 0..* | A user may issue many assignments. |
+| Staff | Assignments | `staff.id` → `assignments.staff_id` | 1 : 0..* | A staff profile may process many assignments. |
+| Locations | Assignments | `locations.id` → `assignments.location_id` | 1 : 0..* | A location may be used in many assignments. |
+| Assignments | Property Units | `assignments.id` → `property_units.assignment_id` | 1 : 0..* | An assignment can include one or more selected physical units. |
+| Assignments | Returns | `assignments.id` → `returns.assignment_id` | 1 : 0..* | An assignment can have return records. |
+| Users | Returns | `users.id` → `returns.returned_by` | 1 : 0..* | A user may record many return transactions. |
+| Users | Property Requests | `users.id` → `property_requests.requested_by` | 1 : 0..* | A teacher/end user may submit many property requests. |
+| Users | Property Requests | `users.id` → `property_requests.reviewed_by` | 1 : 0..* | A staff member may review and forward many requests. |
+| Users | Property Requests | `users.id` → `property_requests.processed_by` | 1 : 0..* | An administrator may approve, reject, or mark many requests as awaiting stock. |
+| Properties | Property Requests | `properties.id` → `property_requests.selected_property_id` | 1 : 0..* | An administrator can select a property for a request when inventory is available. |
+| Assignments | Property Requests | `assignments.id` → `property_requests.assignment_id` | 1 : 0..1 | A fulfilled request creates at most one assignment and receiving receipt. |
+| Properties | Disposals | `properties.id` → `disposals.property_id` | 1 : 0..* | A property may have disposal records. |
+| Assignments | Disposals | `assignments.id` → `disposals.assignment_id` | 1 : 0..* | A disposal can refer to an active assignment when an assigned item is disposed. |
+| Users | Disposals | `users.id` → `disposals.disposed_by` | 1 : 0..* | A user may submit many disposal requests. |
+| Users | Disposals | `users.id` → `disposals.processed_by` | 1 : 0..* | An administrator/user may process many disposal decisions. |
+| Admins | Disposals | `admins.id` → `disposals.admin_id` | 1 : 0..* | An administrator profile may review many disposal records. |
+| Disposal Methods | Disposals | `disposal_methods.id` → `disposals.disposal_method_id` | 1 : 0..* | One disposal method can be used by many disposal records. |
+| Properties | Property Histories | `properties.id` → `property_histories.property_id` | 1 : 0..* | A property may have many history entries, including assignment, return, and disposal activities. |
+| Admins | Approvals | `admins.id` → `approvals.admin_id` | 1 : 0..* | An administrator profile may record many approval entries. |
+
+`approvals.reference_type` identifies the type of record approved, but the
+current schema has no `reference_id`. It therefore has no direct foreign-key
+connection to a property request, assignment, or disposal record.
