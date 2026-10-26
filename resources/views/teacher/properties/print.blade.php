@@ -63,8 +63,7 @@
             @if ($admins->count() > 1)
                 <form method="GET" action="{{ route('teacher.properties.print') }}" style="margin-bottom: 16px;">
                     <label for="verified_by">Verifying administrator:</label>
-                    <select name="verified_by" id="verified_by" required style="min-height: 44px; max-width: 100%;">
-                        <option value="">Select administrator</option>
+                    <select name="verified_by" id="verified_by" onchange="this.form.submit()" required style="min-height: 44px; max-width: 100%;">
                         @foreach ($admins as $admin)
                             <option value="{{ $admin->id }}" @selected($verifyingAdmin?->id === $admin->id)>{{ $admin->name }}</option>
                         @endforeach
@@ -143,7 +142,7 @@
                     </td>
                     <td>
                         <strong>Verified by:</strong>
-                        <div class="signature-line">{{ $verifyingAdmin?->name ?? 'Administrator not selected' }}</div>
+                        <div class="signature-line">{{ $verifyingAdmin?->name ?? 'School Administrator' }}</div>
                         <div class="signature-caption">Signature over Printed Name of Administrator</div>
                         <div class="date-line">Date: ____________________</div>
                     </td>

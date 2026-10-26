@@ -27,6 +27,7 @@ class PardsSampleSeeder extends Seeder
                 'role' => User::ROLE_ADMIN,
             ]
         );
+        $admin->syncRoleProfile(['department' => 'Supply Office']);
 
         $staff = User::query()->updateOrCreate(
             ['email' => 'staff@pards.test'],
@@ -36,6 +37,7 @@ class PardsSampleSeeder extends Seeder
                 'role' => User::ROLE_STAFF,
             ]
         );
+        $staff->syncRoleProfile(['employee_number' => 'STF-001', 'department' => 'Supply Office']);
 
         $teacherOne = User::query()->updateOrCreate(
             ['email' => 'teacher1@pards.test'],
@@ -45,6 +47,7 @@ class PardsSampleSeeder extends Seeder
                 'role' => User::ROLE_TEACHER,
             ]
         );
+        $teacherOne->syncRoleProfile(['employee_number' => 'TCH-001', 'subject_area' => 'Science']);
 
         $teacherTwo = User::query()->updateOrCreate(
             ['email' => 'teacher2@pards.test'],

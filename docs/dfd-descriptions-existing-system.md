@@ -1,9 +1,0 @@
-# DFD Descriptions - Existing Property Accountability and Disposal System
-
-## DFD Level 0 Description
-
-Figure [insert figure number] presents the Data Flow Diagram (DFD) Level 0 of the existing property accountability and disposal process, showing the overall exchange of information among the Teacher or End-User, Supply Office Staff, and Administrator. The Teacher or End-User submits property-related requests, acknowledges received items, and reports returned or unserviceable properties for evaluation; the Supply Office Staff records property details, prepares accountability documents, processes return or disposal information, and prepares reports; while the Administrator provides authorization, approves disposal actions, and receives the required reports. The diagram represents the existing procedure as one general process and indicates that property monitoring and report preparation depend on manually maintained forms, logbooks, and files.
-
-## DFD Level 1 Description
-
-Figure [insert figure number] presents the DFD Level 1 of the existing property accountability and disposal process by decomposing the general process into five activities: receiving property and personnel information, recording property inventory, preparing property accountability, processing property return or disposal, and preparing property reports. In this process, personnel and request information is verified through the Personnel List, property details are maintained in the Property Inventory Logbook, issued properties are documented in Accountability Forms, and returned items or items reported for disposal evaluation are recorded in the Return and Disposal Records upon inspection and required approval. The gathered information is then used in preparing property reports for the Administrator and Supply Office Staff, illustrating that the existing process relies on manual recordkeeping and repeated checking of separate documents.

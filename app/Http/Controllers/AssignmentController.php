@@ -131,13 +131,20 @@ class AssignmentController extends Controller
         ]);
     }
 
-    public function print(Assignment $assignment): View
+    public function print(Request $request, Assignment $assignment): View
     {
         $assignment->load(['property', 'propertyUnits', 'assignee', 'assignedBy']);
+
+        $admins = User::query()->where('role', User::ROLE_ADMIN)->where('is_active', true)->orderBy('name')->get();
+        $verifyingAdmin = $request->filled('verified_by')
+            ? $admins->firstWhere('id', $request->integer('verified_by'))
+            : ($admins->firstWhere('id', auth()->id()) ?? User::defaultAdmin() ?? $assignment->assignedBy);
 
         return view('assignments.print', [
             'assignment' => $assignment,
             'printedAt' => now(),
+            'admins' => $admins,
+            'verifyingAdmin' => $verifyingAdmin,
         ]);
     }
 

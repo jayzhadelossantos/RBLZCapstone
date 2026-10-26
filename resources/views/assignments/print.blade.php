@@ -157,6 +157,16 @@
 <body>
     <main class="page">
         <div class="print-actions">
+            @if (isset($admins) && $admins->count() > 1 && !isset($requestNumber))
+                <form method="GET" action="{{ route('assignments.print', $assignment) }}" style="display: inline-flex; align-items: center; gap: 8px; margin-right: 12px;">
+                    <label for="verified_by">Admin / Supply Officer:</label>
+                    <select name="verified_by" id="verified_by" onchange="this.form.submit()" style="padding: 6px 10px; border: 1px solid #bacfe1; border-radius: 6px;">
+                        @foreach ($admins as $admin)
+                            <option value="{{ $admin->id }}" @selected(($verifyingAdmin?->id ?? null) === $admin->id)>{{ $admin->name }}</option>
+                        @endforeach
+                    </select>
+                </form>
+            @endif
             <button type="button" onclick="window.print()">Print</button>
             <a href="{{ $backUrl ?? route('assignments.show', $assignment) }}">Back</a>
         </div>
@@ -168,7 +178,7 @@
             <h2>Property Receiving Copy</h2>
             <p>Property Accountability Records and Disposal System</p>
             @isset ($requestNumber)
-                <p>Property Request #{{ $requestNumber }} | Approved by: {{ $approvedBy?->name ?? 'N/A' }}</p>
+                <p>Property Request #{{ $requestNumber }} | Approved by: {{ $approvedBy?->name ?? $verifyingAdmin?->name ?? 'Supply Office Administrator' }}</p>
             @endisset
         </header>
 
@@ -242,7 +252,7 @@
                 <div class="signature-role">Receiver / End-User Signature</div>
             </div>
             <div class="signature-line">
-                <div>{{ $assignment->assignedBy?->name ?: '' }}</div>
+                <div>{{ $verifyingAdmin?->name ?? $assignment->assignedBy?->name ?? 'Supply Office Administrator' }}</div>
                 <div class="signature-role">Admin / Supply Officer Signature</div>
             </div>
         </section>

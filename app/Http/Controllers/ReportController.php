@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Assignment;
 use App\Models\Disposal;
 use App\Models\Property;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Response;
@@ -25,6 +26,7 @@ class ReportController extends Controller
     {
         return view('reports.properties', [
             'properties' => $this->propertyQuery()->get(),
+            'activeAdmin' => User::defaultAdmin(),
         ]);
     }
 
@@ -32,6 +34,7 @@ class ReportController extends Controller
     {
         return view('reports.assignments', [
             'assignments' => $this->assignmentQuery()->get(),
+            'activeAdmin' => User::defaultAdmin(),
         ]);
     }
 
@@ -39,6 +42,7 @@ class ReportController extends Controller
     {
         return view('reports.disposals', [
             'disposals' => $this->disposalQuery()->get(),
+            'activeAdmin' => User::defaultAdmin(),
         ]);
     }
 
@@ -47,6 +51,7 @@ class ReportController extends Controller
         $pdf = Pdf::loadView('reports.pdf.properties', [
             'title' => 'Property List Report',
             'properties' => $this->propertyQuery()->get(),
+            'activeAdmin' => User::defaultAdmin(),
         ])->setPaper('a4', 'landscape');
 
         return $pdf->download('property-list-report.pdf');
@@ -57,6 +62,7 @@ class ReportController extends Controller
         $pdf = Pdf::loadView('reports.pdf.assignments', [
             'title' => 'Assigned Items Report',
             'assignments' => $this->assignmentQuery()->get(),
+            'activeAdmin' => User::defaultAdmin(),
         ])->setPaper('a4', 'landscape');
 
         return $pdf->download('assigned-items-report.pdf');
@@ -67,6 +73,7 @@ class ReportController extends Controller
         $pdf = Pdf::loadView('reports.pdf.disposals', [
             'title' => 'Disposal Report',
             'disposals' => $this->disposalQuery()->get(),
+            'activeAdmin' => User::defaultAdmin(),
         ])->setPaper('a4', 'landscape');
 
         return $pdf->download('disposal-report.pdf');

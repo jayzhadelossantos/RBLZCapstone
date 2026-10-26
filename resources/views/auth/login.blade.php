@@ -372,7 +372,7 @@
                 </form>
 
             </div>
-        </section>
+        </section>  
     </main>
 
     <script>

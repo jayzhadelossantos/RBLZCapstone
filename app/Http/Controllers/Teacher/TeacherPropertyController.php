@@ -96,7 +96,7 @@ class TeacherPropertyController extends Controller
         $admins = User::query()->where('role', User::ROLE_ADMIN)->where('is_active', true)->orderBy('name')->get(['id', 'name']);
         $verifyingAdmin = $request->filled('verified_by')
             ? $admins->firstWhere('id', $request->integer('verified_by'))
-            : ($admins->count() === 1 ? $admins->first() : null);
+            : (User::defaultAdmin() ?? $admins->first());
 
         $properties = Property::query()
             ->with([

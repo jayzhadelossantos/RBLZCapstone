@@ -146,9 +146,16 @@ class PropertyRequestController extends Controller
         abort_unless($request->user()->isAdmin() || $request->user()->isStaff() || $propertyRequest->requested_by === $request->user()->id, 403);
         abort_unless($propertyRequest->assignment_id, 404);
         $assignment = $propertyRequest->assignment()->with(['property', 'propertyUnits', 'assignee', 'assignedBy'])->firstOrFail();
+        $admins = User::query()->where('role', User::ROLE_ADMIN)->where('is_active', true)->orderBy('name')->get();
+        $activeAdmin = $admins->firstWhere('id', auth()->id()) ?? User::defaultAdmin() ?? $admins->first();
+        $approver = $propertyRequest->processedBy ?? $activeAdmin;
+
         return view('assignments.print', [
-            'assignment' => $assignment, 'printedAt' => now(),
-            'approvedBy' => $propertyRequest->processedBy,
+            'assignment' => $assignment,
+            'printedAt' => now(),
+            'approvedBy' => $approver,
+            'admins' => $admins,
+            'verifyingAdmin' => $approver ?? $assignment->assignedBy,
             'requestNumber' => $propertyRequest->id,
             'backUrl' => $request->user()->isTeacher() ? route('teacher.property-requests.index') : route('property-requests.show', $propertyRequest),
         ]);

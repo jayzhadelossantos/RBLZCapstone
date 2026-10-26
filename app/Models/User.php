@@ -88,6 +88,36 @@ class User extends Authenticatable
         return $this->hasOne(Admin::class);
     }
 
+    public function getAdminProfileAttribute(): ?Admin
+    {
+        if (! $this->isAdmin()) {
+            return null;
+        }
+
+        $profile = $this->getRelationValue('adminProfile');
+
+        if (! $profile && $this->exists) {
+            $profile = Admin::query()->firstOrCreate(['user_id' => $this->id]);
+            $this->setRelation('adminProfile', $profile);
+        }
+
+        return $profile;
+    }
+
+    public static function activeAdmins()
+    {
+        return static::query()
+            ->where('role', self::ROLE_ADMIN)
+            ->where('is_active', true)
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id');
+    }
+
+    public static function defaultAdmin(): ?self
+    {
+        return static::activeAdmins()->first();
+    }
+
     public function staffProfile(): HasOne
     {
         return $this->hasOne(Staff::class);
@@ -156,6 +186,8 @@ class User extends Authenticatable
                 ['user_id' => $this->id],
                 ['department' => $this->normalizeProfileValue($attributes['department'] ?? $this->department)]
             );
+            Staff::query()->where('user_id', $this->id)->delete();
+            Teacher::query()->where('user_id', $this->id)->delete();
         }
 
         if ($role === self::ROLE_STAFF) {
@@ -166,6 +198,8 @@ class User extends Authenticatable
                     'department' => $this->normalizeProfileValue($attributes['department'] ?? $this->department),
                 ]
             );
+            Admin::query()->where('user_id', $this->id)->delete();
+            Teacher::query()->where('user_id', $this->id)->delete();
         }
 
         if ($role === self::ROLE_TEACHER) {
@@ -176,6 +210,8 @@ class User extends Authenticatable
                     'subject_area' => $this->normalizeProfileValue($attributes['subject_area'] ?? $this->subject_area),
                 ]
             );
+            Admin::query()->where('user_id', $this->id)->delete();
+            Staff::query()->where('user_id', $this->id)->delete();
         }
     }
 

@@ -58,5 +58,6 @@
                 </tbody>
             </table>
         </div>
+        @include('reports.partials.print-signatories')
     </div>
 @endsection

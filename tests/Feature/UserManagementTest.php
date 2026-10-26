@@ -132,4 +132,32 @@ class UserManagementTest extends TestCase
             'disposed_by' => null,
         ]);
     }
+
+    public function test_admin_profile_is_dynamically_synced_and_active_admin_resolves(): void
+    {
+        $admin = User::factory()->create([
+            'role' => User::ROLE_ADMIN,
+            'name' => 'Initial Admin',
+        ]);
+        $admin->syncRoleProfile(['department' => 'Supply Office']);
+
+        $this->assertDatabaseHas('admins', [
+            'user_id' => $admin->id,
+            'department' => 'Supply Office',
+        ]);
+
+        // Creating another admin updates defaultAdmin dynamically
+        $newAdmin = User::factory()->create([
+            'role' => User::ROLE_ADMIN,
+            'name' => 'New Dynamic Admin',
+        ]);
+        $newAdmin->syncRoleProfile(['department' => 'Property Office']);
+
+        $this->assertEquals($newAdmin->id, User::defaultAdmin()->id);
+
+        // Switching role cleans up old admin record
+        $newAdmin->syncRoleProfile(['role' => User::ROLE_STAFF, 'department' => 'Property Office']);
+        $this->assertDatabaseMissing('admins', ['user_id' => $newAdmin->id]);
+        $this->assertDatabaseHas('staff', ['user_id' => $newAdmin->id]);
+    }
 }
