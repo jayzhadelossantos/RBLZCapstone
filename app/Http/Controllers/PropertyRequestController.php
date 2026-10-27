@@ -6,6 +6,7 @@ use App\Http\Requests\StorePropertyRequestSubmissionRequest;
 use App\Http\Requests\UpdatePropertyRequestStatusRequest;
 use App\Models\PropertyRequestRecord;
 use App\Models\Property;
+use App\Models\User;
 use App\Services\RequestAssignmentService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
