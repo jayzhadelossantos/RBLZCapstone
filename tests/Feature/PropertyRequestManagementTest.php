@@ -95,6 +95,27 @@ class PropertyRequestManagementTest extends TestCase
         ]);
     }
 
+    public function test_teacher_cannot_submit_a_duplicate_active_request_for_the_same_item(): void
+    {
+        $teacher = User::factory()->create(['role' => User::ROLE_TEACHER]);
+        PropertyRequestRecord::query()->create([
+            'requested_by' => $teacher->id,
+            'requested_item_name' => 'Wireless Mouse',
+            'requested_quantity' => 1,
+            'purpose' => 'Existing active request.',
+            'status' => PropertyRequestRecord::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($teacher)->post('/teacher/property-requests', [
+            'request_source' => 'unavailable',
+            'requested_item_name' => 'wireless mouse',
+            'requested_quantity' => 1,
+            'purpose' => 'Duplicate request should not be saved.',
+        ])->assertSessionHasErrors('requested_item_name');
+
+        $this->assertDatabaseCount('property_requests', 1);
+    }
+
     public function test_teacher_dashboard_shows_property_request_entry_points(): void
     {
         $teacher = User::factory()->create([

@@ -70,10 +70,31 @@ class PropertyRequestController extends Controller
             }
         }
 
+        $requestedItemName = $replacementAssignment?->property?->property_name
+            ?? $availableProperty?->property_name
+            ?? trim((string) $request->input('requested_item_name'));
+
+        $hasDuplicateRequest = PropertyRequestRecord::query()
+            ->where('requested_by', $request->user()->id)
+            ->whereIn('status', [
+                PropertyRequestRecord::STATUS_PENDING,
+                PropertyRequestRecord::STATUS_REVIEWED,
+                PropertyRequestRecord::STATUS_AWAITING_STOCK,
+                PropertyRequestRecord::STATUS_APPROVED,
+            ])
+            ->whereRaw('LOWER(requested_item_name) = ?', [mb_strtolower($requestedItemName)])
+            ->exists();
+
+        if ($hasDuplicateRequest) {
+            throw ValidationException::withMessages([
+                'requested_item_name' => 'You already have an active request for this item. Please wait for it to be processed before submitting another request.',
+            ]);
+        }
+
         PropertyRequestRecord::query()->create([
             'requested_by' => $request->user()->id,
             'request_type' => $type,
-            'requested_item_name' => $replacementAssignment?->property?->property_name ?? $availableProperty?->property_name ?? trim((string) $request->input('requested_item_name')),
+            'requested_item_name' => $requestedItemName,
             'requested_quantity' => $request->integer('requested_quantity'),
             'needed_by' => $request->date('needed_by'),
             'purpose' => trim((string) $request->input('purpose')),
