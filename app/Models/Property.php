@@ -86,6 +86,26 @@ class Property extends Model
         ];
     }
 
+    public static function measurementUnits(): array
+    {
+        return [
+            'piece',
+            'units',
+            'unit',
+            'set',
+            'pair',
+            'pack',
+            'box',
+            'ream',
+            'roll',
+            'bundle',
+            'cartridge',
+            'liter',
+            'kilogram',
+            'meter',
+        ];
+    }
+
     public static function generateSerialNumber(): string
     {
         do {

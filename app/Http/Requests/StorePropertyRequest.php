@@ -30,7 +30,7 @@ class StorePropertyRequest extends FormRequest
             'units.*.id' => ['nullable', 'integer', 'distinct'],
             'units.*.serial_number' => ['nullable', 'string', 'max:255'],
             'unit_cost' => ['nullable', 'numeric', 'min:0'],
-            'unit' => ['required', 'string', 'max:50'],
+            'unit' => ['required', Rule::in(Property::measurementUnits())],
             'date_acquired' => ['nullable', 'date'],
             'condition_status' => ['required', Rule::in(Property::conditionStatuses())],
             'status' => ['required', Rule::in(Property::statuses())],

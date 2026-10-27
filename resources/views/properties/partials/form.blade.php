@@ -10,6 +10,8 @@
 @php
     $selectedQuantity = max(0, min(1000, (int) old('quantity', $property->quantity ?? 1)));
     $selectedUnitCost = old('unit_cost', $property->unit_cost);
+    $measurementUnits = \App\Models\Property::measurementUnits();
+    $selectedMeasurementUnit = old('unit', $property->unit ?: 'piece');
     $initialTotalCost = is_numeric($selectedUnitCost)
         ? number_format((float) $selectedUnitCost * $selectedQuantity, 2, '.', ',')
         : number_format(0, 2, '.', ',');
@@ -78,14 +80,12 @@
 
     <div class="col-md-4">
         <label for="unit" class="form-label">Unit</label>
-        <input
-            type="text"
-            id="unit"
-            name="unit"
-            class="form-control @error('unit') is-invalid @enderror"
-            value="{{ old('unit', $property->unit ?: 'piece') }}"
-            required
-        >
+        <select id="unit" name="unit" class="form-select @error('unit') is-invalid @enderror" data-infer-unit="{{ $property->exists ? 'false' : 'true' }}" required>
+            @foreach ($measurementUnits as $measurementUnit)
+                <option value="{{ $measurementUnit }}" @selected($selectedMeasurementUnit === $measurementUnit)>{{ ucfirst($measurementUnit) }}</option>
+            @endforeach
+        </select>
+        <div class="form-text">Automatically set from the property name; choose a different preset only when needed.</div>
         @error('unit')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
@@ -302,6 +302,9 @@
         <script>
             document.addEventListener('DOMContentLoaded', () => {
                 const quantityInput = document.querySelector('#quantity');
+                const propertyNameInput = document.querySelector('#property_name');
+                const categoryInput = document.querySelector('#category');
+                const unitSelect = document.querySelector('#unit');
                 const unitCostInput = document.querySelector('[data-unit-cost-input]');
                 const totalCostOutput = document.querySelector('[data-total-cost-output]');
 
@@ -327,7 +330,26 @@
                 quantityInput.addEventListener('input', updateTotalCost);
                 unitCostInput.addEventListener('input', updateTotalCost);
 
+                const inferUnit = () => {
+                    if (unitSelect.dataset.inferUnit !== 'true' || unitSelect.dataset.userSelected === 'true') return;
+
+                    const description = `${propertyNameInput?.value || ''} ${categoryInput?.value || ''}`.toLowerCase();
+                    const inferredUnit = /paper|bond/.test(description) ? 'ream'
+                        : /toner|ink/.test(description) ? 'cartridge'
+                            : /cable|wire/.test(description) ? 'meter'
+                                : /paint|alcohol|cleaner|liquid/.test(description) ? 'liter'
+                                    : /chair|table|cabinet|laptop|computer|projector|keyboard|mouse|printer|furniture/.test(description) ? 'piece'
+                                        : 'piece';
+
+                    unitSelect.value = inferredUnit;
+                };
+
+                unitSelect.addEventListener('change', () => unitSelect.dataset.userSelected = 'true');
+                propertyNameInput?.addEventListener('input', inferUnit);
+                categoryInput?.addEventListener('input', inferUnit);
+
                 updateTotalCost();
+                inferUnit();
             });
         </script>
     @endpush
