@@ -60,6 +60,21 @@ class QrCodeController extends Controller
         ]);
     }
 
+    public function print(Property $property): View
+    {
+        $property = $this->ensureQrToken($property);
+        $property->load(['assignments.teacher']);
+        $activeAssignment = $this->activeAssignment($property);
+        $scanUrl = route('qr.scan', $property->qr_token);
+
+        return view('qr.print-sticker', [
+            'property' => $property,
+            'propertyUnit' => null,
+            'activeAssignment' => $activeAssignment,
+            'qrSvg' => QrCode::format('svg')->size(220)->generate($this->buildQrPayload($property, $activeAssignment, $scanUrl)),
+        ]);
+    }
+
     public function showUnit(PropertyUnit $propertyUnit): View
     {
         $propertyUnit = $this->ensureUnitQrToken($propertyUnit);
@@ -91,6 +106,20 @@ class QrCodeController extends Controller
         return response($qrSvg, 200, [
             'Content-Type' => 'image/svg+xml',
             'Content-Disposition' => 'attachment; filename="unit-'.$propertyUnit->serial_number.'-qr.svg"',
+        ]);
+    }
+
+    public function printUnit(PropertyUnit $propertyUnit): View
+    {
+        $propertyUnit = $this->ensureUnitQrToken($propertyUnit);
+        $propertyUnit->load(['property', 'assignment.assignee']);
+        $scanUrl = route('qr.scan', $propertyUnit->qr_token);
+
+        return view('qr.print-sticker', [
+            'property' => $propertyUnit->property,
+            'propertyUnit' => $propertyUnit,
+            'activeAssignment' => $propertyUnit->assignment,
+            'qrSvg' => QrCode::format('svg')->size(220)->generate($this->buildUnitQrPayload($propertyUnit, $scanUrl)),
         ]);
     }
 

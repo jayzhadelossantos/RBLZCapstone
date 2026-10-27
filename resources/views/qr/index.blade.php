@@ -37,6 +37,7 @@
                             <td class="text-end">
                                 <div class="d-inline-flex gap-2">
                                     <a href="{{ route('qr.units.show', $propertyUnit) }}" class="btn btn-sm btn-outline-primary">View QR</a>
+                                    <a href="{{ route('qr.units.print', $propertyUnit) }}" class="btn btn-sm btn-outline-success" target="_blank">Print Sticker</a>
                                     <a href="{{ route('qr.units.download', $propertyUnit) }}" class="btn btn-sm btn-primary">Download</a>
                                 </div>
                             </td>

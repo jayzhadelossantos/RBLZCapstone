@@ -56,8 +56,10 @@ Route::middleware('auth')->group(function () {
         Route::resource('disposals', DisposalController::class)->only(['index', 'create', 'store', 'show']);
         Route::get('/qr-codes', [QrCodeController::class, 'index'])->name('qr.index');
         Route::get('/properties/{property}/qr', [QrCodeController::class, 'show'])->name('qr.show');
+        Route::get('/properties/{property}/qr/print', [QrCodeController::class, 'print'])->name('qr.print');
         Route::get('/properties/{property}/qr/download', [QrCodeController::class, 'download'])->name('qr.download');
         Route::get('/property-units/{propertyUnit}/qr', [QrCodeController::class, 'showUnit'])->name('qr.units.show');
+        Route::get('/property-units/{propertyUnit}/qr/print', [QrCodeController::class, 'printUnit'])->name('qr.units.print');
         Route::get('/property-units/{propertyUnit}/qr/download', [QrCodeController::class, 'downloadUnit'])->name('qr.units.download');
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/properties', [ReportController::class, 'properties'])->name('reports.properties');

@@ -15,6 +15,9 @@
                 </div>
 
                 <div class="d-grid gap-2">
+                    <a href="{{ route('qr.units.print', $propertyUnit) }}" class="btn btn-success" target="_blank">
+                        <i class="bi bi-printer me-2"></i>Print Property Sticker
+                    </a>
                     <a href="{{ route('qr.units.download', $propertyUnit) }}" class="btn btn-primary">
                         <i class="bi bi-download me-2"></i>Download QR Code
                     </a>
