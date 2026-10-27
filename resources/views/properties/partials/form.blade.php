@@ -12,6 +12,7 @@
     $selectedUnitCost = old('unit_cost', $property->unit_cost);
     $measurementUnits = \App\Models\Property::measurementUnits();
     $selectedMeasurementUnit = old('unit', $property->unit ?: 'piece');
+    $selectedCategory = old('category', $property->category);
     $initialTotalCost = is_numeric($selectedUnitCost)
         ? number_format((float) $selectedUnitCost * $selectedQuantity, 2, '.', ',')
         : number_format(0, 2, '.', ',');
@@ -50,13 +51,13 @@
 
     <div class="col-md-4">
         <label for="category" class="form-label">Category</label>
-        <input
-            type="text"
-            id="category"
-            name="category"
-            class="form-control @error('category') is-invalid @enderror"
-            value="{{ old('category', $property->category) }}"
-        >
+        <select id="category" name="category" class="form-select @error('category') is-invalid @enderror" data-infer-category="{{ $property->exists ? 'false' : 'true' }}">
+            <option value="">Automatically choose category</option>
+            @foreach ($categories as $category)
+                <option value="{{ $category }}" @selected($selectedCategory === $category)>{{ $category }}</option>
+            @endforeach
+        </select>
+        <div class="form-text">Automatically set from the property name; select another category only when needed.</div>
         @error('category')
             <div class="invalid-feedback">{{ $message }}</div>
         @enderror
@@ -346,9 +347,30 @@
 
                 unitSelect.addEventListener('change', () => unitSelect.dataset.userSelected = 'true');
                 propertyNameInput?.addEventListener('input', inferUnit);
-                categoryInput?.addEventListener('input', inferUnit);
+                categoryInput?.addEventListener('change', inferUnit);
+
+                const inferCategory = () => {
+                    if (categoryInput.dataset.inferCategory !== 'true' || categoryInput.dataset.userSelected === 'true') return;
+
+                    const name = (propertyNameInput?.value || '').toLowerCase();
+                    const inferredCategory = /chair|table|cabinet|desk|shelf|furniture/.test(name) ? 'Furniture'
+                        : /laptop|computer|printer|projector|keyboard|mouse|tablet|router|monitor/.test(name) ? 'ICT Equipment'
+                            : /paper|folder|pen|stapler|toner|ink|envelope/.test(name) ? 'Office Supplies'
+                                : /electric|extension|cable|wire|fan|bulb/.test(name) ? 'Electrical Equipment'
+                                    : /beaker|microscope|test tube|laboratory/.test(name) ? 'Laboratory Equipment'
+                                        : /broom|mop|cleaner|alcohol/.test(name) ? 'Cleaning Supplies'
+                                            : /whiteboard|classroom/.test(name) ? 'Classroom Equipment'
+                                                : 'Other';
+
+                    categoryInput.value = inferredCategory;
+                    inferUnit();
+                };
+
+                categoryInput.addEventListener('change', () => categoryInput.dataset.userSelected = 'true');
+                propertyNameInput?.addEventListener('input', inferCategory);
 
                 updateTotalCost();
+                inferCategory();
                 inferUnit();
             });
         </script>

@@ -106,6 +106,21 @@ class Property extends Model
         ];
     }
 
+    public static function standardCategories(): array
+    {
+        return [
+            'Furniture',
+            'ICT Equipment',
+            'Office Equipment',
+            'Office Supplies',
+            'Classroom Equipment',
+            'Laboratory Equipment',
+            'Electrical Equipment',
+            'Cleaning Supplies',
+            'Other',
+        ];
+    }
+
     public static function generateSerialNumber(): string
     {
         do {

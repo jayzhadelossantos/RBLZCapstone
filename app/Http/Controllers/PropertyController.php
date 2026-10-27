@@ -66,6 +66,7 @@ class PropertyController extends Controller
     {
         return view('properties.create', [
             'property' => new Property(),
+            'categories' => Property::standardCategories(),
             'statuses' => Property::statuses(),
             'conditionStatuses' => Property::conditionStatuses(),
         ]);
@@ -108,6 +109,7 @@ class PropertyController extends Controller
     {
         return view('properties.edit', [
             'property' => $property,
+            'categories' => collect(Property::standardCategories())->push($property->category)->filter()->unique()->values(),
             'statuses' => Property::statuses(),
             'conditionStatuses' => Property::conditionStatuses(),
         ]);

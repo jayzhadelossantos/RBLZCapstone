@@ -27,6 +27,8 @@ class PropertyManagementTest extends TestCase
         $response->assertDontSee('name="serial_number"', false);
         $response->assertSee('name="unit"', false);
         $response->assertSee('data-infer-unit="true"', false);
+        $response->assertSee('data-infer-category="true"', false);
+        $response->assertSee('Furniture');
     }
 
     public function test_property_store_requires_a_property_code(): void
