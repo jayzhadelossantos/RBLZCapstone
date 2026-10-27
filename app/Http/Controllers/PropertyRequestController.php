@@ -7,6 +7,7 @@ use App\Http\Requests\UpdatePropertyRequestStatusRequest;
 use App\Models\PropertyRequestRecord;
 use App\Models\Property;
 use App\Models\User;
+use App\Models\Assignment;
 use App\Services\RequestAssignmentService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -34,18 +35,38 @@ class PropertyRequestController extends Controller
     {
         return view('teacher.property-requests.create', [
             'propertyRequest' => new PropertyRequestRecord(),
+            'assignedProperties' => $this->activeAssignmentsFor(auth()->user()->id),
         ]);
     }
 
     public function store(StorePropertyRequestSubmissionRequest $request): RedirectResponse
     {
+        $type = $request->input('request_type', PropertyRequestRecord::TYPE_NEW);
+        $replacementAssignment = null;
+
+        if ($type === PropertyRequestRecord::TYPE_REPLACEMENT) {
+            $replacementAssignment = $this->activeAssignmentsFor($request->user()->id)
+                ->firstWhere('id', $request->integer('replacement_assignment_id'));
+
+            if (! $replacementAssignment) {
+                throw ValidationException::withMessages(['replacement_assignment_id' => 'Select an active property assigned to you.']);
+            }
+
+            if ($request->integer('requested_quantity') > $replacementAssignment->quantity_assigned) {
+                throw ValidationException::withMessages(['requested_quantity' => 'Replacement quantity cannot exceed the quantity assigned to you.']);
+            }
+        }
+
         PropertyRequestRecord::query()->create([
             'requested_by' => $request->user()->id,
-            'requested_item_name' => trim((string) $request->input('requested_item_name')),
+            'request_type' => $type,
+            'requested_item_name' => $replacementAssignment?->property?->property_name ?? trim((string) $request->input('requested_item_name')),
             'requested_quantity' => $request->integer('requested_quantity'),
             'needed_by' => $request->date('needed_by'),
             'purpose' => trim((string) $request->input('purpose')),
             'additional_notes' => $this->normalizeText($request->input('additional_notes')),
+            'issue_description' => $type === PropertyRequestRecord::TYPE_REPLACEMENT ? $this->normalizeText($request->input('issue_description')) : null,
+            'replacement_assignment_id' => $replacementAssignment?->id,
             'status' => PropertyRequestRecord::STATUS_PENDING,
         ]);
 
@@ -57,7 +78,7 @@ class PropertyRequestController extends Controller
     public function index(Request $request): View
     {
         $propertyRequests = PropertyRequestRecord::query()
-            ->with(['requester', 'processedBy', 'selectedProperty'])
+            ->with(['requester', 'processedBy', 'selectedProperty', 'replacementAssignment.property'])
             ->when($request->user()->isAdmin(), fn ($query) => $query->whereNotNull('reviewed_at'))
             ->when(in_array($request->query('status'), PropertyRequestRecord::statuses(), true), fn ($query) => $query->where('status', $request->query('status')))
             ->latest()
@@ -72,7 +93,7 @@ class PropertyRequestController extends Controller
     public function show(Request $request, PropertyRequestRecord $propertyRequest): View
     {
         abort_if($request->user()->isAdmin() && ! $propertyRequest->reviewed_at, 403);
-        $propertyRequest->load(['requester', 'processedBy', 'reviewedBy', 'assignment.property', 'selectedProperty']);
+        $propertyRequest->load(['requester', 'processedBy', 'reviewedBy', 'assignment.property', 'selectedProperty', 'replacementAssignment.property']);
 
         return view('property-requests.show', [
             'propertyRequest' => $propertyRequest,
@@ -167,5 +188,15 @@ class PropertyRequestController extends Controller
         $normalized = trim((string) $value);
 
         return $normalized === '' ? null : $normalized;
+    }
+
+    private function activeAssignmentsFor(int $userId)
+    {
+        return Assignment::query()
+            ->with('property')
+            ->where('teacher_id', $userId)
+            ->where('status', Assignment::STATUS_ACTIVE)
+            ->orderByDesc('assigned_at')
+            ->get();
     }
 }

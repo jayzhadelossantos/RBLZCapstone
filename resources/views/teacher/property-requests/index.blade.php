@@ -32,6 +32,7 @@
                         <tr>
                             <td>
                                 <div class="fw-semibold">{{ $propertyRequest->requested_item_name }}</div>
+                                <small class="badge text-bg-secondary">{{ $propertyRequest->request_type_label }}</small>
                                 <small class="text-muted">{{ \Illuminate\Support\Str::limit($propertyRequest->purpose, 80) }}</small>
                             </td>
                             <td>{{ $propertyRequest->requested_quantity }}</td>
@@ -52,6 +53,14 @@
                                 <td colspan="6" class="bg-light-subtle">
                                     <div class="small text-muted">Supply Office Notes</div>
                                     <div>{{ $propertyRequest->response_notes }}</div>
+                                </td>
+                            </tr>
+                        @endif
+                        @if ($propertyRequest->request_type === \App\Models\PropertyRequestRecord::TYPE_REPLACEMENT)
+                            <tr>
+                                <td colspan="6" class="bg-warning-subtle">
+                                    <div class="small text-muted">Replacement issue</div>
+                                    <div>{{ $propertyRequest->issue_description }}</div>
                                 </td>
                             </tr>
                         @endif

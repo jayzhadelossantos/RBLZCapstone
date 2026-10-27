@@ -17,16 +17,21 @@ class PropertyRequestRecord extends Model
     public const STATUS_REJECTED = 'rejected';
     public const STATUS_FULFILLED = 'fulfilled';
 
+    public const TYPE_NEW = 'new';
+    public const TYPE_REPLACEMENT = 'replacement';
+
     protected $table = 'property_requests';
 
     protected $fillable = [
         'requested_by',
+        'request_type',
         'processed_by',
         'requested_item_name',
         'requested_quantity',
         'needed_by',
         'purpose',
         'additional_notes',
+        'issue_description',
         'status',
         'response_notes',
         'processed_at',
@@ -35,6 +40,7 @@ class PropertyRequestRecord extends Model
         'review_notes',
         'assignment_id',
         'selected_property_id',
+        'replacement_assignment_id',
     ];
 
     protected function casts(): array
@@ -59,6 +65,11 @@ class PropertyRequestRecord extends Model
         ];
     }
 
+    public static function requestTypes(): array
+    {
+        return [self::TYPE_NEW, self::TYPE_REPLACEMENT];
+    }
+
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
@@ -72,6 +83,11 @@ class PropertyRequestRecord extends Model
     public function assignment(): BelongsTo
     {
         return $this->belongsTo(Assignment::class);
+    }
+
+    public function replacementAssignment(): BelongsTo
+    {
+        return $this->belongsTo(Assignment::class, 'replacement_assignment_id');
     }
 
     public function selectedProperty(): BelongsTo
@@ -89,6 +105,13 @@ class PropertyRequestRecord extends Model
             self::STATUS_FULFILLED => 'Assigned - receipt ready',
             default => ucfirst($this->status),
         };
+    }
+
+    public function getRequestTypeLabelAttribute(): string
+    {
+        return $this->request_type === self::TYPE_REPLACEMENT
+            ? 'Replacement request'
+            : 'New property request';
     }
 
     public function processedBy(): BelongsTo

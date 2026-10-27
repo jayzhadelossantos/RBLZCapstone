@@ -24,7 +24,12 @@
                 <h3 class="h5">Request Information</h3>
                 <dl class="row mb-0">
                     <dt class="col-sm-4">Status</dt><dd class="col-sm-8">{{ $propertyRequest->status_label }}</dd>
+                    <dt class="col-sm-4">Request type</dt><dd class="col-sm-8">{{ $propertyRequest->request_type_label }}</dd>
                     <dt class="col-sm-4">Quantity</dt><dd class="col-sm-8">{{ $propertyRequest->requested_quantity }}</dd>
+                    @if ($propertyRequest->request_type === \App\Models\PropertyRequestRecord::TYPE_REPLACEMENT)
+                        <dt class="col-sm-4">Property to replace</dt><dd class="col-sm-8">{{ $propertyRequest->replacementAssignment?->property?->property_name ?? 'Original assignment unavailable' }}</dd>
+                        <dt class="col-sm-4">Damage / issue</dt><dd class="col-sm-8">{{ $propertyRequest->issue_description }}</dd>
+                    @endif
                     <dt class="col-sm-4">Needed by</dt><dd class="col-sm-8">{{ $propertyRequest->needed_by?->format('F d, Y') ?? 'Not specified' }}</dd>
                     <dt class="col-sm-4">Purpose</dt><dd class="col-sm-8">{{ $propertyRequest->purpose }}</dd>
                     <dt class="col-sm-4">Additional notes</dt><dd class="col-sm-8">{{ $propertyRequest->additional_notes ?: 'None' }}</dd>

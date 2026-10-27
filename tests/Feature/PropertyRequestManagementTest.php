@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\PropertyRequestRecord;
+use App\Models\Assignment;
+use App\Models\Property;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -33,6 +35,39 @@ class PropertyRequestManagementTest extends TestCase
             'requested_item_name' => 'Wireless Mouse',
             'requested_quantity' => 2,
             'status' => PropertyRequestRecord::STATUS_PENDING,
+        ]);
+    }
+
+    public function test_teacher_can_request_a_replacement_for_an_active_assigned_property(): void
+    {
+        $teacher = User::factory()->create(['role' => User::ROLE_TEACHER]);
+        $staff = User::factory()->create(['role' => User::ROLE_STAFF]);
+        $property = Property::create([
+            'property_code' => 'RPL-001', 'qr_reference' => 'RPL-001', 'qr_token' => 'RPL-001',
+            'property_name' => 'Classroom Projector', 'quantity' => 1, 'unit' => 'unit',
+            'condition_status' => 'good', 'status' => 'available',
+        ]);
+        $assignment = Assignment::create([
+            'property_id' => $property->id, 'teacher_id' => $teacher->id, 'assigned_by' => $staff->id,
+            'quantity_assigned' => 1, 'assigned_at' => now()->toDateString(), 'date_assigned' => now()->toDateString(),
+            'status' => Assignment::STATUS_ACTIVE,
+        ]);
+
+        $this->actingAs($teacher)->post('/teacher/property-requests', [
+            'request_type' => PropertyRequestRecord::TYPE_REPLACEMENT,
+            'replacement_assignment_id' => $assignment->id,
+            'requested_item_name' => 'Changed by browser',
+            'requested_quantity' => 1,
+            'purpose' => 'Replace unusable classroom equipment.',
+            'issue_description' => 'The projector no longer powers on.',
+        ])->assertRedirect('/teacher/property-requests');
+
+        $this->assertDatabaseHas('property_requests', [
+            'requested_by' => $teacher->id,
+            'request_type' => PropertyRequestRecord::TYPE_REPLACEMENT,
+            'replacement_assignment_id' => $assignment->id,
+            'requested_item_name' => 'Classroom Projector',
+            'issue_description' => 'The projector no longer powers on.',
         ]);
     }
 

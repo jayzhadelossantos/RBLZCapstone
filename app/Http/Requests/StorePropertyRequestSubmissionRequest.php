@@ -17,11 +17,14 @@ class StorePropertyRequestSubmissionRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'request_type' => ['nullable', Rule::in(PropertyRequestRecord::requestTypes())],
             'requested_item_name' => ['required', 'string', 'max:255'],
             'requested_quantity' => ['required', 'integer', 'min:1'],
             'needed_by' => ['nullable', 'date'],
             'purpose' => ['required', 'string'],
             'additional_notes' => ['nullable', 'string'],
+            'replacement_assignment_id' => ['required_if:request_type,replacement', 'nullable', 'integer', 'exists:assignments,id'],
+            'issue_description' => ['required_if:request_type,replacement', 'nullable', 'string', 'max:3000'],
             'status' => ['nullable', Rule::in(PropertyRequestRecord::statuses())],
         ];
     }
