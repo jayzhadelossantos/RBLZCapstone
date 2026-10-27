@@ -29,9 +29,10 @@ class QrStickerTest extends TestCase
 
         $this->actingAs($admin)->get('/properties/'.$property->id.'/qr/print')
             ->assertOk()
-            ->assertSee('PARDS PROPERTY STICKER')
-            ->assertSee('Classroom Tablet')
-            ->assertSee('TAB-001')
-            ->assertSee('Sticker Owner');
+            ->assertSee('PARDS')
+            ->assertSee('Scan to view property details')
+            ->assertDontSee('Classroom Tablet')
+            ->assertDontSee('TAB-001')
+            ->assertDontSee('Sticker Owner');
     }
 }

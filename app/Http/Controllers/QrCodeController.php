@@ -181,38 +181,11 @@ class QrCodeController extends Controller
 
     protected function buildQrPayload(Property $property, ?Assignment $activeAssignment, string $scanUrl): string
     {
-        return implode("\n", [
-            'PARDS Property Information',
-            'Property Name: '.$property->property_name,
-            'Property Code: '.$property->property_code,
-            'Serial Number: '.($property->serial_number ?: 'N/A'),
-            'Assigned To: '.($activeAssignment?->teacher?->name ?? 'Unassigned'),
-            'Status: '.ucfirst(str_replace('_', ' ', $property->status)),
-            'Condition: '.ucfirst(str_replace('_', ' ', $property->condition_status)),
-            'Location: '.($activeAssignment?->location ?: 'N/A'),
-            'Open Details: '.$scanUrl,
-        ]);
+        return $scanUrl;
     }
 
     protected function buildUnitQrPayload(PropertyUnit $propertyUnit, string $scanUrl): string
     {
-        $property = $propertyUnit->property;
-        $assignment = $propertyUnit->assignment;
-
-        return implode("\n", [
-            'PARDS Property Unit Information',
-            'Property Name: '.$property?->property_name,
-            'Property Code: '.$property?->property_code,
-            'Brand: '.($property?->brand ?: 'N/A'),
-            'Model: '.($property?->model ?: 'N/A'),
-            'Unit Serial Number: '.$propertyUnit->serial_number,
-            'Assigned To: '.($assignment?->assignee?->name ?? 'Unassigned'),
-            'Unit Status: '.ucfirst(str_replace('_', ' ', $propertyUnit->status)),
-            'Property Status: '.ucfirst(str_replace('_', ' ', $property?->status ?? 'N/A')),
-            'Condition: '.ucfirst(str_replace('_', ' ', $property?->condition_status ?? 'N/A')),
-            'Office: '.($property?->office ?: 'N/A'),
-            'Location: '.($assignment?->location ?: $property?->location ?: 'N/A'),
-            'Open Details: '.$scanUrl,
-        ]);
+        return $scanUrl;
     }
 }
