@@ -36,6 +36,7 @@ class PropertyRequestController extends Controller
         return view('teacher.property-requests.create', [
             'propertyRequest' => new PropertyRequestRecord(),
             'assignedProperties' => $this->activeAssignmentsFor(auth()->user()->id),
+            'availableProperties' => $this->availableProperties(),
         ]);
     }
 
@@ -43,6 +44,7 @@ class PropertyRequestController extends Controller
     {
         $type = $request->input('request_type', PropertyRequestRecord::TYPE_NEW);
         $replacementAssignment = null;
+        $availableProperty = null;
 
         if ($type === PropertyRequestRecord::TYPE_REPLACEMENT) {
             $replacementAssignment = $this->activeAssignmentsFor($request->user()->id)
@@ -55,12 +57,23 @@ class PropertyRequestController extends Controller
             if ($request->integer('requested_quantity') > $replacementAssignment->quantity_assigned) {
                 throw ValidationException::withMessages(['requested_quantity' => 'Replacement quantity cannot exceed the quantity assigned to you.']);
             }
+        } elseif ($request->input('request_source') === 'inventory') {
+            $availableProperty = $this->availableProperties()
+                ->firstWhere('id', $request->integer('available_property_id'));
+
+            if (! $availableProperty) {
+                throw ValidationException::withMessages(['available_property_id' => 'Select an available inventory item, or choose the unavailable-item request option.']);
+            }
+
+            if ($request->integer('requested_quantity') > $availableProperty->quantity) {
+                throw ValidationException::withMessages(['requested_quantity' => 'Requested quantity exceeds the available inventory quantity.']);
+            }
         }
 
         PropertyRequestRecord::query()->create([
             'requested_by' => $request->user()->id,
             'request_type' => $type,
-            'requested_item_name' => $replacementAssignment?->property?->property_name ?? trim((string) $request->input('requested_item_name')),
+            'requested_item_name' => $replacementAssignment?->property?->property_name ?? $availableProperty?->property_name ?? trim((string) $request->input('requested_item_name')),
             'requested_quantity' => $request->integer('requested_quantity'),
             'needed_by' => $request->date('needed_by'),
             'purpose' => trim((string) $request->input('purpose')),
@@ -198,5 +211,14 @@ class PropertyRequestController extends Controller
             ->where('status', Assignment::STATUS_ACTIVE)
             ->orderByDesc('assigned_at')
             ->get();
+    }
+
+    private function availableProperties()
+    {
+        return Property::query()
+            ->where('quantity', '>', 0)
+            ->whereNotIn('status', [Property::STATUS_DISPOSED, Property::STATUS_FOR_DISPOSAL])
+            ->orderBy('property_name')
+            ->get(['id', 'property_name', 'property_code', 'quantity', 'unit']);
     }
 }

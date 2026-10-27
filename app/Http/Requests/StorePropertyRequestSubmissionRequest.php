@@ -18,7 +18,9 @@ class StorePropertyRequestSubmissionRequest extends FormRequest
     {
         return [
             'request_type' => ['nullable', Rule::in(PropertyRequestRecord::requestTypes())],
-            'requested_item_name' => ['required', 'string', 'max:255'],
+            'request_source' => ['nullable', Rule::in(['inventory', 'unavailable'])],
+            'available_property_id' => ['required_if:request_source,inventory', 'nullable', 'integer', 'exists:properties,id'],
+            'requested_item_name' => ['required_unless:request_source,inventory', 'nullable', 'string', 'max:255'],
             'requested_quantity' => ['required', 'integer', 'min:1'],
             'needed_by' => ['nullable', 'date'],
             'purpose' => ['required', 'string'],

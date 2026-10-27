@@ -36,19 +36,41 @@
         </div>
     </div>
 
-    <div class="col-md-8">
-        <label for="requested_item_name" class="form-label">Requested Item</label>
-        <input
-            type="text"
-            id="requested_item_name"
-            name="requested_item_name"
-            class="form-control @error('requested_item_name') is-invalid @enderror"
-            value="{{ old('requested_item_name', $propertyRequest->requested_item_name) }}"
-            required
-        >
-        @error('requested_item_name')
-            <div class="invalid-feedback">{{ $message }}</div>
-        @enderror
+    <div class="col-12" id="newRequestDetails">
+        <div class="border rounded p-3 bg-light-subtle">
+            <label for="request_source" class="form-label">Item Availability</label>
+            <select id="request_source" name="request_source" class="form-select mb-3 @error('request_source') is-invalid @enderror">
+                <option value="inventory" @selected(old('request_source', 'inventory') === 'inventory')>Choose from available inventory</option>
+                <option value="unavailable" @selected(old('request_source') === 'unavailable')>Item is not available / not in the inventory list</option>
+            </select>
+
+            <div id="inventoryItemDetails">
+                <label for="available_property_search" class="form-label">Available Inventory Item</label>
+                <input id="available_property_search" list="available_properties" class="form-control @error('available_property_id') is-invalid @enderror" placeholder="Search by item name or property code" autocomplete="off">
+                <input type="hidden" id="available_property_id" name="available_property_id" value="{{ old('available_property_id') }}">
+                <datalist id="available_properties">
+                    @foreach ($availableProperties as $property)
+                        <option value="{{ $property->property_name }} — {{ $property->property_code }} ({{ $property->quantity }} {{ $property->unit }} available)" data-id="{{ $property->id }}" data-name="{{ $property->property_name }}" data-quantity="{{ $property->quantity }}"></option>
+                    @endforeach
+                </datalist>
+                <div class="form-text">Start typing to search the currently available inventory. Select an exact suggestion.</div>
+                @error('available_property_id')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                @if ($availableProperties->isEmpty())
+                    <div class="alert alert-warning mt-3 mb-0">No inventory items are currently available. Choose the unavailable-item request option below.</div>
+                @endif
+            </div>
+
+            <div id="unavailableItemDetails" hidden>
+                <label for="requested_item_name" class="form-label">Item Needed but Not Available</label>
+                <input type="text" id="requested_item_name" name="requested_item_name" class="form-control @error('requested_item_name') is-invalid @enderror" value="{{ old('requested_item_name', $propertyRequest->requested_item_name) }}" placeholder="Enter the item you need">
+                <div class="form-text">Use this only if the item does not appear in the available inventory search.</div>
+                @error('requested_item_name')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
     </div>
 
     <div class="col-md-4">
@@ -118,25 +140,48 @@
 <script>
     const requestType = document.getElementById('request_type');
     const replacementDetails = document.getElementById('replacementDetails');
+    const newRequestDetails = document.getElementById('newRequestDetails');
     const replacementAssignment = document.getElementById('replacement_assignment_id');
     const requestedItem = document.getElementById('requested_item_name');
     const issueDescription = document.getElementById('issue_description');
+    const requestSource = document.getElementById('request_source');
+    const inventoryItemDetails = document.getElementById('inventoryItemDetails');
+    const unavailableItemDetails = document.getElementById('unavailableItemDetails');
+    const inventorySearch = document.getElementById('available_property_search');
+    const inventoryPropertyId = document.getElementById('available_property_id');
+    const inventoryOptions = Array.from(document.querySelectorAll('#available_properties option'));
 
     const toggleReplacement = () => {
         const isReplacement = requestType.value === 'replacement';
         replacementDetails.hidden = !isReplacement;
+        newRequestDetails.hidden = isReplacement;
         replacementAssignment.required = isReplacement;
         issueDescription.required = isReplacement;
-        requestedItem.readOnly = isReplacement;
+        requestedItem.required = !isReplacement && requestSource.value === 'unavailable';
         if (isReplacement) setReplacementItem();
+        if (!isReplacement) toggleRequestSource();
     };
     const setReplacementItem = () => {
         const option = replacementAssignment.selectedOptions[0];
         if (option?.value) requestedItem.value = option.dataset.name;
     };
+    const updateInventorySelection = () => {
+        const option = inventoryOptions.find((item) => item.value === inventorySearch.value);
+        inventoryPropertyId.value = option?.dataset.id || '';
+    };
+    const toggleRequestSource = () => {
+        const needsManualRequest = requestSource.value === 'unavailable';
+        inventoryItemDetails.hidden = needsManualRequest;
+        unavailableItemDetails.hidden = !needsManualRequest;
+        inventorySearch.required = !needsManualRequest;
+        requestedItem.required = needsManualRequest;
+        if (needsManualRequest) inventoryPropertyId.value = '';
+    };
 
     requestType.addEventListener('change', toggleReplacement);
     replacementAssignment.addEventListener('change', setReplacementItem);
+    requestSource.addEventListener('change', toggleRequestSource);
+    inventorySearch.addEventListener('input', updateInventorySelection);
     toggleReplacement();
 </script>
 @endpush

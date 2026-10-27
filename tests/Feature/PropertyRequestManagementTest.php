@@ -71,6 +71,30 @@ class PropertyRequestManagementTest extends TestCase
         ]);
     }
 
+    public function test_teacher_can_select_an_available_inventory_item_from_the_request_catalog(): void
+    {
+        $teacher = User::factory()->create(['role' => User::ROLE_TEACHER]);
+        $property = Property::create([
+            'property_code' => 'CAT-001', 'qr_reference' => 'CAT-001', 'qr_token' => 'CAT-001',
+            'property_name' => 'Wireless Keyboard', 'quantity' => 3, 'unit' => 'units',
+            'condition_status' => 'good', 'status' => 'available',
+        ]);
+
+        $this->actingAs($teacher)->post('/teacher/property-requests', [
+            'request_type' => PropertyRequestRecord::TYPE_NEW,
+            'request_source' => 'inventory',
+            'available_property_id' => $property->id,
+            'requested_quantity' => 2,
+            'purpose' => 'Needed for the computer laboratory.',
+        ])->assertRedirect('/teacher/property-requests');
+
+        $this->assertDatabaseHas('property_requests', [
+            'requested_by' => $teacher->id,
+            'requested_item_name' => 'Wireless Keyboard',
+            'requested_quantity' => 2,
+        ]);
+    }
+
     public function test_teacher_dashboard_shows_property_request_entry_points(): void
     {
         $teacher = User::factory()->create([
