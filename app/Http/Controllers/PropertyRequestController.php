@@ -32,18 +32,15 @@ class PropertyRequestController extends Controller
         ]);
     }
 
-    public function create(Request $request): View
+    public function create(): View
     {
-        $selectedInventory = Inventory::query()
-            ->with('property')
-            ->where('available_quantity', '>', 0)
-            ->find($request->integer('inventory_id'));
+        $availableProperties = $this->availableProperties();
 
         return view('teacher.property-requests.create', [
             'propertyRequest' => new PropertyRequestRecord,
             'assignedProperties' => $this->activeAssignmentsFor(auth()->user()->id),
-            'availableProperties' => $this->availableProperties(),
-            'selectedInventory' => $selectedInventory,
+            'availableProperties' => $availableProperties,
+            'availableCategories' => $availableProperties->pluck('category')->filter()->unique()->sort()->values(),
         ]);
     }
 

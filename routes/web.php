@@ -7,7 +7,6 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisposalController;
 use App\Http\Controllers\PropertyRequestController;
 use App\Http\Controllers\PropertyController;
-use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReturnController;
@@ -88,4 +87,3 @@ Route::middleware('auth')->group(function () {
         Route::get('/teacher/my-properties/{property}', [TeacherPropertyController::class, 'show'])->name('teacher.properties.show');
     });
 });
-        Route::get('/teacher/inventory', [InventoryController::class, 'index'])->name('teacher.inventory.index');

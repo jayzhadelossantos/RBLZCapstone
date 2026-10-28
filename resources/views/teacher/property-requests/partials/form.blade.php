@@ -48,15 +48,26 @@
                 </select>
 
                 <div id="inventoryItemDetails">
-                    <label for="available_property_search" class="form-label">Available Inventory Item</label>
-                    <input id="available_property_search" list="available_properties" class="form-control @error('available_property_id') is-invalid @enderror" placeholder="Search by item name or property code" autocomplete="off">
-                    <input type="hidden" id="available_property_id" name="available_property_id" value="{{ old('available_property_id', $selectedInventory?->property_id) }}">
-                    <datalist id="available_properties">
-                        @foreach ($availableProperties as $property)
-                            <option value="{{ $property->property_name }} - {{ $property->property_code }} ({{ $property->inventory_available_quantity }} {{ $property->unit }} available)" data-id="{{ $property->id }}"></option>
-                        @endforeach
-                    </datalist>
-                    <div class="form-text">Start typing to search available inventory, then choose an exact suggestion. Your quantity is reserved when you submit the request.</div>
+                    <label class="form-label">Available Inventory Items</label>
+                    <input type="hidden" id="available_property_id" name="available_property_id" value="{{ old('available_property_id') }}">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-7"><input id="inventory_filter" class="form-control" placeholder="Search item name, code, or brand"></div>
+                        <div class="col-md-5"><select id="inventory_category_filter" class="form-select"><option value="">All categories</option>@foreach ($availableCategories as $category)<option value="{{ $category }}">{{ $category }}</option>@endforeach</select></div>
+                    </div>
+                    <div class="table-responsive border rounded bg-white">
+                        <table class="table table-hover align-middle mb-0"><thead><tr><th>Item</th><th>Code</th><th>Category</th><th>Available</th><th></th></tr></thead><tbody>
+                        @forelse ($availableProperties as $property)
+                            <tr class="inventory-row" data-search="{{ strtolower($property->property_name.' '.$property->property_code.' '.$property->brand) }}" data-category="{{ $property->category }}">
+                                <td class="fw-semibold">{{ $property->property_name }}</td><td>{{ $property->property_code }}</td><td>{{ $property->category ?: 'N/A' }}</td><td>{{ $property->inventory_available_quantity }} {{ $property->unit }}</td>
+                                <td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary inventory-select" data-property-id="{{ $property->id }}" data-name="{{ $property->property_name }}" data-available="{{ $property->inventory_available_quantity }}" data-unit="{{ $property->unit }}">Select</button></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="5" class="text-center text-muted py-4">No available inventory items.</td></tr>
+                        @endforelse
+                        </tbody></table>
+                    </div>
+                    <div id="selected_inventory_item" class="alert alert-primary py-2 mt-3 mb-0" hidden></div>
+                    <div class="form-text">Select an item, then enter the quantity you need. The selected quantity is reserved when you submit the request.</div>
                     @error('available_property_id') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                 </div>
 
@@ -114,10 +125,14 @@
     const requestSource = document.getElementById('request_source');
     const inventoryItemDetails = document.getElementById('inventoryItemDetails');
     const unavailableItemDetails = document.getElementById('unavailableItemDetails');
-    const inventorySearch = document.getElementById('available_property_search');
     const inventoryPropertyId = document.getElementById('available_property_id');
     const requestedItem = document.getElementById('requested_item_name');
-    const inventoryOptions = Array.from(document.querySelectorAll('#available_properties option'));
+    const inventoryFilter = document.getElementById('inventory_filter');
+    const inventoryCategoryFilter = document.getElementById('inventory_category_filter');
+    const inventoryRows = Array.from(document.querySelectorAll('.inventory-row'));
+    const inventoryButtons = Array.from(document.querySelectorAll('.inventory-select'));
+    const selectedInventoryItem = document.getElementById('selected_inventory_item');
+    const requestedQuantity = document.getElementById('requested_quantity');
     const steps = Array.from(wizard.querySelectorAll('.wizard-step'));
     const backButton = document.getElementById('wizardBack');
     const nextButton = document.getElementById('wizardNext');
@@ -129,9 +144,12 @@
         const needsManualRequest = requestSource.value === 'unavailable';
         inventoryItemDetails.hidden = needsManualRequest || isReplacement;
         unavailableItemDetails.hidden = !needsManualRequest || isReplacement;
-        inventorySearch.required = !isReplacement && !needsManualRequest;
-        inventorySearch.disabled = isReplacement || needsManualRequest;
-        inventoryPropertyId.disabled = isReplacement;
+        inventoryPropertyId.required = !isReplacement && !needsManualRequest;
+        inventoryPropertyId.disabled = isReplacement || needsManualRequest;
+        inventoryFilter.disabled = isReplacement || needsManualRequest;
+        inventoryCategoryFilter.disabled = isReplacement || needsManualRequest;
+        inventoryButtons.forEach((button) => button.disabled = isReplacement || needsManualRequest);
+        if (isReplacement || needsManualRequest) requestedQuantity.removeAttribute('max');
         requestedItem.required = !isReplacement && needsManualRequest;
         requestedItem.disabled = isReplacement || !needsManualRequest;
     };
@@ -146,9 +164,18 @@
         requestSource.disabled = isReplacement;
         toggleRequestSource();
     };
-    const updateInventorySelection = () => {
-        const option = inventoryOptions.find((item) => item.value === inventorySearch.value);
-        inventoryPropertyId.value = option?.dataset.id || '';
+    const selectInventoryItem = (button) => {
+        inventoryPropertyId.value = button.dataset.propertyId;
+        requestedQuantity.max = button.dataset.available;
+        selectedInventoryItem.textContent = `Selected: ${button.dataset.name} — ${button.dataset.available} ${button.dataset.unit} available`;
+        selectedInventoryItem.hidden = false;
+        inventoryButtons.forEach((item) => item.classList.toggle('btn-primary', item === button));
+        inventoryButtons.forEach((item) => item.classList.toggle('btn-outline-primary', item !== button));
+    };
+    const filterInventory = () => {
+        const search = inventoryFilter.value.toLowerCase().trim();
+        const category = inventoryCategoryFilter.value;
+        inventoryRows.forEach((row) => row.hidden = !(row.dataset.search.includes(search) && (!category || row.dataset.category === category)));
     };
     const showStep = (step) => {
         currentStep = step;
@@ -174,7 +201,9 @@
 
     requestType.addEventListener('change', toggleRequestType);
     requestSource.addEventListener('change', toggleRequestSource);
-    inventorySearch.addEventListener('input', updateInventorySelection);
+    inventoryButtons.forEach((button) => button.addEventListener('click', () => selectInventoryItem(button)));
+    inventoryFilter.addEventListener('input', filterInventory);
+    inventoryCategoryFilter.addEventListener('change', filterInventory);
     nextButton.addEventListener('click', () => validateCurrentStep() && showStep(currentStep + 1));
     backButton.addEventListener('click', () => showStep(currentStep - 1));
     requestForm.addEventListener('submit', (event) => {
@@ -188,10 +217,8 @@
     });
 
     toggleRequestType();
-    @if ($selectedInventory)
-        inventorySearch.value = @json($selectedInventory->property->property_name.' - '.$selectedInventory->property->property_code.' ('.$selectedInventory->available_quantity.' '.$selectedInventory->property->unit.' available)');
-        updateInventorySelection();
-    @endif
+    const previouslySelectedInventory = inventoryButtons.find((button) => button.dataset.propertyId === inventoryPropertyId.value);
+    if (previouslySelectedInventory) selectInventoryItem(previouslySelectedInventory);
     showStep({{ $errors->any() ? 3 : 1 }});
 </script>
 @endpush

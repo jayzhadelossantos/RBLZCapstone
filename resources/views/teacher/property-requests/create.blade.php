@@ -8,7 +8,6 @@
     <div class="dashboard-card p-4">
         <div class="mb-4">
             <h2 class="h4 mb-1">Submit Property Request</h2>
-            <a href="{{ route('teacher.inventory.index') }}" class="btn btn-sm btn-outline-primary mt-2">Browse available inventory</a>
         </div>
 
         <form method="POST" action="{{ route('teacher.property-requests.store') }}">
