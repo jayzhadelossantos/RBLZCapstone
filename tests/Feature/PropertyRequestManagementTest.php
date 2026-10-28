@@ -98,6 +98,13 @@ class PropertyRequestManagementTest extends TestCase
             'property_id' => $property->id,
             'available_quantity' => 1,
         ]);
+
+        $this->assertDatabaseHas('inventory_logs', [
+            'property_id' => $property->id,
+            'action' => 'reserved',
+            'quantity_change' => -2,
+            'available_after' => 1,
+        ]);
     }
 
     public function test_teacher_cannot_submit_a_duplicate_active_request_for_the_same_item(): void

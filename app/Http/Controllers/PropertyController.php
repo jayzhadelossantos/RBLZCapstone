@@ -4,16 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePropertyRequest;
 use App\Http\Requests\UpdatePropertyRequest;
+use App\Models\Assignment;
+use App\Models\Disposal;
+use App\Models\InventoryLog;
 use App\Models\Location;
 use App\Models\Property;
 use App\Models\PropertyCategory;
 use App\Models\PropertyHistory;
+use App\Services\InventoryUnitService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-use App\Services\InventoryUnitService;
+use Illuminate\Support\Str;
 
 class PropertyController extends Controller
 {
@@ -27,10 +30,10 @@ class PropertyController extends Controller
 
         $properties = Property::query()->with('units')
             ->withSum([
-                'assignments as active_quantity_assigned' => fn ($query) => $query->where('status', \App\Models\Assignment::STATUS_ACTIVE),
+                'assignments as active_quantity_assigned' => fn ($query) => $query->where('status', Assignment::STATUS_ACTIVE),
             ], 'quantity_assigned')
             ->withSum([
-                'disposals as completed_quantity_disposed' => fn ($query) => $query->whereIn('status', \App\Models\Disposal::finalizedStatuses()),
+                'disposals as completed_quantity_disposed' => fn ($query) => $query->whereIn('status', Disposal::finalizedStatuses()),
             ], 'quantity_disposed')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($innerQuery) use ($search) {
@@ -65,7 +68,7 @@ class PropertyController extends Controller
     public function create(): View
     {
         return view('properties.create', [
-            'property' => new Property(),
+            'property' => new Property,
             'categories' => Property::standardCategories(),
             'statuses' => Property::statuses(),
             'conditionStatuses' => Property::conditionStatuses(),
@@ -82,7 +85,16 @@ class PropertyController extends Controller
         $property = DB::transaction(function () use ($validated, $request) {
             $property = Property::create($validated);
             app(InventoryUnitService::class)->sync($property, $request->validated('units'));
+            if ($property->inventory) {
+                InventoryLog::create([
+                    'inventory_id' => $property->inventory->id, 'property_id' => $property->id,
+                    'user_id' => $request->user()?->id, 'action' => InventoryLog::ACTION_ADDED,
+                    'quantity_change' => $property->quantity, 'available_after' => $property->inventory->available_quantity,
+                    'notes' => 'Property added to inventory.',
+                ]);
+            }
             $this->recordHistory($property, 'created', 'property:'.$property->id, 'Property record created.');
+
             return $property;
         });
 
@@ -94,10 +106,10 @@ class PropertyController extends Controller
     public function show(Property $property): View
     {
         $property->loadSum([
-            'assignments as active_quantity_assigned' => fn ($query) => $query->where('status', \App\Models\Assignment::STATUS_ACTIVE),
+            'assignments as active_quantity_assigned' => fn ($query) => $query->where('status', Assignment::STATUS_ACTIVE),
         ], 'quantity_assigned');
         $property->loadSum([
-            'disposals as completed_quantity_disposed' => fn ($query) => $query->whereIn('status', \App\Models\Disposal::finalizedStatuses()),
+            'disposals as completed_quantity_disposed' => fn ($query) => $query->whereIn('status', Disposal::finalizedStatuses()),
         ], 'quantity_disposed');
 
         return view('properties.show', [
@@ -183,5 +195,4 @@ class PropertyController extends Controller
             'remarks' => $remarks,
         ]);
     }
-
 }

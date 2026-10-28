@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DisposalController;
 use App\Http\Controllers\PropertyRequestController;
 use App\Http\Controllers\PropertyController;
+use App\Http\Controllers\InventoryLogController;
 use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReturnController;
@@ -45,6 +46,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('role:admin,staff')->group(function () {
+        Route::get('/inventory-history', [InventoryLogController::class, 'index'])->name('inventory-logs.index');
         Route::get('/property-requests', [PropertyRequestController::class, 'index'])->name('property-requests.index');
         Route::get('/property-requests/{propertyRequest}', [PropertyRequestController::class, 'show'])->name('property-requests.show');
         Route::patch('/property-requests/{propertyRequest}/status', [PropertyRequestController::class, 'updateStatus'])->name('property-requests.status');

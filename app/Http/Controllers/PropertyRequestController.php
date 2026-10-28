@@ -6,6 +6,7 @@ use App\Http\Requests\StorePropertyRequestSubmissionRequest;
 use App\Http\Requests\UpdatePropertyRequestStatusRequest;
 use App\Models\Assignment;
 use App\Models\Inventory;
+use App\Models\InventoryLog;
 use App\Models\Property;
 use App\Models\PropertyRequestRecord;
 use App\Models\User;
@@ -109,7 +110,7 @@ class PropertyRequestController extends Controller
                 $inventory->decrement('available_quantity', $request->integer('requested_quantity'));
             }
 
-            PropertyRequestRecord::query()->create([
+            $propertyRequest = PropertyRequestRecord::query()->create([
                 'requested_by' => $request->user()->id,
                 'request_type' => $type,
                 'requested_item_name' => $requestedItemName,
@@ -122,6 +123,15 @@ class PropertyRequestController extends Controller
                 'inventory_id' => $inventoryId,
                 'status' => PropertyRequestRecord::STATUS_PENDING,
             ]);
+            if ($inventoryId) {
+                $inventory->refresh();
+                InventoryLog::create([
+                    'inventory_id' => $inventory->id, 'property_id' => $inventory->property_id,
+                    'property_request_id' => $propertyRequest->id, 'user_id' => $request->user()->id,
+                    'action' => InventoryLog::ACTION_RESERVED, 'quantity_change' => -$propertyRequest->requested_quantity,
+                    'available_after' => $inventory->available_quantity, 'notes' => 'Stock reserved for property request #'.$propertyRequest->id.'.',
+                ]);
+            }
         });
 
         return redirect()
@@ -179,6 +189,18 @@ class PropertyRequestController extends Controller
                         $request->boolean('select_units') || $request->has('unit_ids') ? $request->input('unit_ids', []) : null);
                     $assignment->update(['department' => $request->input('department') ?: $assignment->department]);
                     $record->update(['status' => PropertyRequestRecord::STATUS_FULFILLED, 'assignment_id' => $assignment->id, 'selected_property_id' => $assignment->property_id]);
+                    if ($record->inventory_id) {
+                        $inventory = Inventory::query()->find($record->inventory_id);
+                        if ($inventory) {
+                            InventoryLog::create([
+                                'inventory_id' => $inventory->id, 'property_id' => $inventory->property_id,
+                                'property_request_id' => $record->id, 'user_id' => $request->user()->id,
+                                'action' => InventoryLog::ACTION_FULFILLED, 'quantity_change' => 0,
+                                'available_after' => $inventory->available_quantity,
+                                'notes' => 'Property request fulfilled and assigned.',
+                            ]);
+                        }
+                    }
 
                     return;
                 }
@@ -204,7 +226,17 @@ class PropertyRequestController extends Controller
                 }
             }
             if ($request->input('status') === PropertyRequestRecord::STATUS_REJECTED && $record->inventory_id) {
-                Inventory::query()->lockForUpdate()->find($record->inventory_id)?->increment('available_quantity', $record->requested_quantity);
+                $inventory = Inventory::query()->lockForUpdate()->find($record->inventory_id);
+                if ($inventory) {
+                    $inventory->increment('available_quantity', $record->requested_quantity);
+                    $inventory->refresh();
+                    InventoryLog::create([
+                        'inventory_id' => $inventory->id, 'property_id' => $inventory->property_id,
+                        'property_request_id' => $record->id, 'user_id' => $request->user()->id,
+                        'action' => InventoryLog::ACTION_RELEASED, 'quantity_change' => $record->requested_quantity,
+                        'available_after' => $inventory->available_quantity, 'notes' => 'Stock released after request rejection.',
+                    ]);
+                }
             }
             $record->update([
                 'status' => $request->input('status'),

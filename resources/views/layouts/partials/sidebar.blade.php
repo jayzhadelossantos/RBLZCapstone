@@ -17,6 +17,7 @@
         ['label' => 'Dashboard', 'icon' => 'bi-grid-1x2-fill', 'url' => $dashboardRoute, 'visible' => true],
         ['label' => 'Manage Users', 'icon' => 'bi-people-fill', 'url' => route('users.index'), 'visible' => $role === 'admin'],
         ['label' => $role === 'admin' ? 'Manage Property' : 'View Property List', 'icon' => 'bi-box-seam-fill', 'url' => route('properties.index'), 'visible' => in_array($role, ['admin', 'staff'], true)],
+        ['label' => 'Inventory History', 'icon' => 'bi-clock-history', 'url' => route('inventory-logs.index'), 'visible' => in_array($role, ['admin', 'staff'], true)],
         ['label' => $role === 'admin' ? 'View Assign Property' : 'Assign Property', 'icon' => 'bi-journal-check', 'url' => $role === 'admin' ? route('assignments.index') : route('assignments.create'), 'visible' => in_array($role, ['admin', 'staff'], true)],
         ['label' => 'Return Logs', 'icon' => 'bi-arrow-return-left', 'url' => route('returns.index'), 'visible' => in_array($role, ['admin', 'staff'], true)],
         ['label' => $role === 'admin' ? 'View Disposal Request' : 'Request Disposal', 'icon' => 'bi-archive-fill', 'url' => $role === 'admin' ? route('disposals.index') : route('disposals.create'), 'visible' => in_array($role, ['admin', 'staff'], true)],
