@@ -11,13 +11,19 @@ class PropertyRequestRecord extends Model
     use HasFactory;
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_REVIEWED = 'awaiting_admin';
+
     public const STATUS_AWAITING_STOCK = 'awaiting_stock';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
+
     public const STATUS_FULFILLED = 'fulfilled';
 
     public const TYPE_NEW = 'new';
+
     public const TYPE_REPLACEMENT = 'replacement';
 
     protected $table = 'property_requests';
@@ -40,6 +46,7 @@ class PropertyRequestRecord extends Model
         'review_notes',
         'assignment_id',
         'selected_property_id',
+        'inventory_id',
         'replacement_assignment_id',
     ];
 
@@ -93,6 +100,11 @@ class PropertyRequestRecord extends Model
     public function selectedProperty(): BelongsTo
     {
         return $this->belongsTo(Property::class, 'selected_property_id');
+    }
+
+    public function inventory(): BelongsTo
+    {
+        return $this->belongsTo(Inventory::class);
     }
 
     public function getStatusLabelAttribute(): string

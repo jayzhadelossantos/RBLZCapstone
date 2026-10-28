@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\PropertyRequestRecord;
 use App\Models\Assignment;
 use App\Models\Property;
+use App\Models\PropertyRequestRecord;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -92,6 +92,11 @@ class PropertyRequestManagementTest extends TestCase
             'requested_by' => $teacher->id,
             'requested_item_name' => 'Wireless Keyboard',
             'requested_quantity' => 2,
+        ]);
+
+        $this->assertDatabaseHas('inventories', [
+            'property_id' => $property->id,
+            'available_quantity' => 1,
         ]);
     }
 

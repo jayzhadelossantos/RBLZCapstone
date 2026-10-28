@@ -4,16 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePropertyRequestSubmissionRequest;
 use App\Http\Requests\UpdatePropertyRequestStatusRequest;
-use App\Models\PropertyRequestRecord;
-use App\Models\Property;
-use App\Models\User;
 use App\Models\Assignment;
+use App\Models\Inventory;
+use App\Models\Property;
+use App\Models\PropertyRequestRecord;
+use App\Models\User;
 use App\Services\RequestAssignmentService;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PropertyRequestController extends Controller
 {
@@ -31,12 +32,18 @@ class PropertyRequestController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
+        $selectedInventory = Inventory::query()
+            ->with('property')
+            ->where('available_quantity', '>', 0)
+            ->find($request->integer('inventory_id'));
+
         return view('teacher.property-requests.create', [
-            'propertyRequest' => new PropertyRequestRecord(),
+            'propertyRequest' => new PropertyRequestRecord,
             'assignedProperties' => $this->activeAssignmentsFor(auth()->user()->id),
             'availableProperties' => $this->availableProperties(),
+            'selectedInventory' => $selectedInventory,
         ]);
     }
 
@@ -45,6 +52,7 @@ class PropertyRequestController extends Controller
         $type = $request->input('request_type', PropertyRequestRecord::TYPE_NEW);
         $replacementAssignment = null;
         $availableProperty = null;
+        $inventoryId = null;
 
         if ($type === PropertyRequestRecord::TYPE_REPLACEMENT) {
             $replacementAssignment = $this->activeAssignmentsFor($request->user()->id)
@@ -58,14 +66,18 @@ class PropertyRequestController extends Controller
                 throw ValidationException::withMessages(['requested_quantity' => 'Replacement quantity cannot exceed the quantity assigned to you.']);
             }
         } elseif ($request->input('request_source') === 'inventory') {
-            $availableProperty = $this->availableProperties()
-                ->firstWhere('id', $request->integer('available_property_id'));
+            $inventory = Inventory::query()->with('property')
+                ->where('property_id', $request->integer('available_property_id'))
+                ->where('available_quantity', '>', 0)
+                ->first();
+            $availableProperty = $inventory?->property;
+            $inventoryId = $inventory?->id;
 
             if (! $availableProperty) {
                 throw ValidationException::withMessages(['available_property_id' => 'Select an available inventory item, or choose the unavailable-item request option.']);
             }
 
-            if ($request->integer('requested_quantity') > $availableProperty->quantity) {
+            if ($request->integer('requested_quantity') > $inventory->available_quantity) {
                 throw ValidationException::withMessages(['requested_quantity' => 'Requested quantity exceeds the available inventory quantity.']);
             }
         }
@@ -91,18 +103,29 @@ class PropertyRequestController extends Controller
             ]);
         }
 
-        PropertyRequestRecord::query()->create([
-            'requested_by' => $request->user()->id,
-            'request_type' => $type,
-            'requested_item_name' => $requestedItemName,
-            'requested_quantity' => $request->integer('requested_quantity'),
-            'needed_by' => $request->date('needed_by'),
-            'purpose' => trim((string) $request->input('purpose')),
-            'additional_notes' => $this->normalizeText($request->input('additional_notes')),
-            'issue_description' => $type === PropertyRequestRecord::TYPE_REPLACEMENT ? $this->normalizeText($request->input('issue_description')) : null,
-            'replacement_assignment_id' => $replacementAssignment?->id,
-            'status' => PropertyRequestRecord::STATUS_PENDING,
-        ]);
+        DB::transaction(function () use ($request, $type, $requestedItemName, $replacementAssignment, $inventoryId) {
+            if ($inventoryId) {
+                $inventory = Inventory::query()->lockForUpdate()->findOrFail($inventoryId);
+                if ($inventory->available_quantity < $request->integer('requested_quantity')) {
+                    throw ValidationException::withMessages(['requested_quantity' => 'Requested quantity exceeds the available inventory quantity.']);
+                }
+                $inventory->decrement('available_quantity', $request->integer('requested_quantity'));
+            }
+
+            PropertyRequestRecord::query()->create([
+                'requested_by' => $request->user()->id,
+                'request_type' => $type,
+                'requested_item_name' => $requestedItemName,
+                'requested_quantity' => $request->integer('requested_quantity'),
+                'needed_by' => $request->date('needed_by'),
+                'purpose' => trim((string) $request->input('purpose')),
+                'additional_notes' => $this->normalizeText($request->input('additional_notes')),
+                'issue_description' => $type === PropertyRequestRecord::TYPE_REPLACEMENT ? $this->normalizeText($request->input('issue_description')) : null,
+                'replacement_assignment_id' => $replacementAssignment?->id,
+                'inventory_id' => $inventoryId,
+                'status' => PropertyRequestRecord::STATUS_PENDING,
+            ]);
+        });
 
         return redirect()
             ->route('teacher.property-requests.index')
@@ -112,7 +135,7 @@ class PropertyRequestController extends Controller
     public function index(Request $request): View
     {
         $propertyRequests = PropertyRequestRecord::query()
-            ->with(['requester', 'processedBy', 'selectedProperty', 'replacementAssignment.property'])
+            ->with(['requester', 'processedBy', 'selectedProperty', 'replacementAssignment.property', 'inventory.property'])
             ->when($request->user()->isAdmin(), fn ($query) => $query->whereNotNull('reviewed_at'))
             ->when(in_array($request->query('status'), PropertyRequestRecord::statuses(), true), fn ($query) => $query->where('status', $request->query('status')))
             ->latest()
@@ -127,12 +150,13 @@ class PropertyRequestController extends Controller
     public function show(Request $request, PropertyRequestRecord $propertyRequest): View
     {
         abort_if($request->user()->isAdmin() && ! $propertyRequest->reviewed_at, 403);
-        $propertyRequest->load(['requester', 'processedBy', 'reviewedBy', 'assignment.property', 'selectedProperty', 'replacementAssignment.property']);
+        $propertyRequest->load(['requester', 'processedBy', 'reviewedBy', 'assignment.property', 'selectedProperty', 'replacementAssignment.property', 'inventory.property']);
 
         return view('property-requests.show', [
             'propertyRequest' => $propertyRequest,
             'statuses' => PropertyRequestRecord::statuses(),
             'properties' => Property::query()->with('availableUnits')->where('quantity', '>=', max(1, $propertyRequest->requested_quantity))
+                ->when($propertyRequest->inventory_id, fn ($query) => $query->where('id', $propertyRequest->inventory?->property_id))
                 ->when($request->user()->isStaff() && $propertyRequest->status === PropertyRequestRecord::STATUS_APPROVED,
                     fn ($query) => $query->where('id', $propertyRequest->selected_property_id))
                 ->whereNotIn('status', [Property::STATUS_DISPOSED, Property::STATUS_FOR_DISPOSAL])
@@ -158,6 +182,7 @@ class PropertyRequestController extends Controller
                         $request->boolean('select_units') || $request->has('unit_ids') ? $request->input('unit_ids', []) : null);
                     $assignment->update(['department' => $request->input('department') ?: $assignment->department]);
                     $record->update(['status' => PropertyRequestRecord::STATUS_FULFILLED, 'assignment_id' => $assignment->id, 'selected_property_id' => $assignment->property_id]);
+
                     return;
                 }
                 if ($record->status !== PropertyRequestRecord::STATUS_PENDING) {
@@ -168,20 +193,25 @@ class PropertyRequestController extends Controller
                     'reviewed_by' => $request->user()->id, 'reviewed_at' => now(),
                     'review_notes' => $this->normalizeText($request->input('response_notes')),
                 ]);
+
                 return;
             }
             if (! $record->reviewed_at || $record->assignment_id || ! in_array($record->status, [PropertyRequestRecord::STATUS_REVIEWED, PropertyRequestRecord::STATUS_AWAITING_STOCK, PropertyRequestRecord::STATUS_APPROVED], true)) {
                 throw ValidationException::withMessages(['status' => 'Only requests forwarded by staff and awaiting a decision can be processed.']);
             }
             if ($request->input('status') === PropertyRequestRecord::STATUS_APPROVED) {
-                $property = Property::query()->lockForUpdate()->findOrFail($request->integer('property_id'));
+                $propertyId = $record->inventory?->property_id ?: $request->integer('property_id');
+                $property = Property::query()->lockForUpdate()->findOrFail($propertyId);
                 if ($property->quantity < $record->requested_quantity || in_array($property->status, [Property::STATUS_DISPOSED, Property::STATUS_FOR_DISPOSAL], true)) {
                     throw ValidationException::withMessages(['property_id' => 'Not enough available stock. Keep this request awaiting stock until inventory is available.']);
                 }
             }
+            if ($request->input('status') === PropertyRequestRecord::STATUS_REJECTED && $record->inventory_id) {
+                Inventory::query()->lockForUpdate()->find($record->inventory_id)?->increment('available_quantity', $record->requested_quantity);
+            }
             $record->update([
                 'status' => $request->input('status'),
-                'selected_property_id' => $request->input('status') === PropertyRequestRecord::STATUS_APPROVED ? $request->integer('property_id') : null,
+                'selected_property_id' => $request->input('status') === PropertyRequestRecord::STATUS_APPROVED ? ($record->inventory?->property_id ?: $request->integer('property_id')) : null,
                 'response_notes' => $this->normalizeText($request->input('response_notes')),
                 'processed_by' => $request->user()->id, 'processed_at' => now(),
             ]);
@@ -236,10 +266,16 @@ class PropertyRequestController extends Controller
 
     private function availableProperties()
     {
-        return Property::query()
-            ->where('quantity', '>', 0)
-            ->whereNotIn('status', [Property::STATUS_DISPOSED, Property::STATUS_FOR_DISPOSAL])
-            ->orderBy('property_name')
-            ->get(['id', 'property_name', 'property_code', 'quantity', 'unit']);
+        return Inventory::query()->with('property')
+            ->where('available_quantity', '>', 0)
+            ->whereHas('property', fn ($query) => $query->whereNotIn('status', [Property::STATUS_DISPOSED, Property::STATUS_FOR_DISPOSAL]))
+            ->get()
+            ->map(function (Inventory $inventory) {
+                $property = $inventory->property;
+                $property->setAttribute('inventory_available_quantity', $inventory->available_quantity);
+
+                return $property;
+            })
+            ->sortBy('property_name')->values();
     }
 }

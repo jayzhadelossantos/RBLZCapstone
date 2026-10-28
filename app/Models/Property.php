@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class Property extends Model
@@ -13,14 +14,21 @@ class Property extends Model
     use HasFactory;
 
     public const STATUS_AVAILABLE = 'available';
+
     public const STATUS_ASSIGNED = 'assigned';
+
     public const STATUS_FOR_DISPOSAL = 'for_disposal';
+
     public const STATUS_DISPOSED = 'disposed';
 
     public const CONDITION_NEW = 'new';
+
     public const CONDITION_GOOD = 'good';
+
     public const CONDITION_FAIR = 'fair';
+
     public const CONDITION_POOR = 'poor';
+
     public const CONDITION_DAMAGED = 'damaged';
 
     protected $fillable = [
@@ -156,6 +164,20 @@ class Property extends Model
     public function assignments(): HasMany
     {
         return $this->hasMany(Assignment::class);
+    }
+
+    public function inventory(): HasOne
+    {
+        return $this->hasOne(Inventory::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (self $property): void {
+            if ($property->quantity > 0 && ! in_array($property->status, [self::STATUS_DISPOSED, self::STATUS_FOR_DISPOSAL], true)) {
+                $property->inventory()->firstOrCreate([], ['available_quantity' => $property->quantity]);
+            }
+        });
     }
 
     public function activeAssignments(): HasMany

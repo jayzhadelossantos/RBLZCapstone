@@ -50,13 +50,13 @@
                 <div id="inventoryItemDetails">
                     <label for="available_property_search" class="form-label">Available Inventory Item</label>
                     <input id="available_property_search" list="available_properties" class="form-control @error('available_property_id') is-invalid @enderror" placeholder="Search by item name or property code" autocomplete="off">
-                    <input type="hidden" id="available_property_id" name="available_property_id" value="{{ old('available_property_id') }}">
+                    <input type="hidden" id="available_property_id" name="available_property_id" value="{{ old('available_property_id', $selectedInventory?->property_id) }}">
                     <datalist id="available_properties">
                         @foreach ($availableProperties as $property)
-                            <option value="{{ $property->property_name }} - {{ $property->property_code }} ({{ $property->quantity }} {{ $property->unit }} available)" data-id="{{ $property->id }}"></option>
+                            <option value="{{ $property->property_name }} - {{ $property->property_code }} ({{ $property->inventory_available_quantity }} {{ $property->unit }} available)" data-id="{{ $property->id }}"></option>
                         @endforeach
                     </datalist>
-                    <div class="form-text">Start typing to search available inventory, then choose an exact suggestion.</div>
+                    <div class="form-text">Start typing to search available inventory, then choose an exact suggestion. Your quantity is reserved when you submit the request.</div>
                     @error('available_property_id') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                 </div>
 
@@ -188,6 +188,10 @@
     });
 
     toggleRequestType();
+    @if ($selectedInventory)
+        inventorySearch.value = @json($selectedInventory->property->property_name.' - '.$selectedInventory->property->property_code.' ('.$selectedInventory->available_quantity.' '.$selectedInventory->property->unit.' available)');
+        updateInventorySelection();
+    @endif
     showStep({{ $errors->any() ? 3 : 1 }});
 </script>
 @endpush

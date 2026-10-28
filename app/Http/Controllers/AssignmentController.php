@@ -12,6 +12,7 @@ use App\Models\PropertyHistory;
 use App\Models\PropertyUnit;
 use App\Models\ReturnRecord;
 use App\Models\User;
+use App\Services\InventoryUnitService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -57,12 +58,13 @@ class AssignmentController extends Controller
             'search' => $search,
         ]);
     }
+
     public function create(Request $request): View
     {
         [$selectedTeacherId, $selectedStaffId, $selectedAssignee] = $this->prefilledAssignee($request);
 
         return view('assignments.create', $this->assignmentFormData(
-            new Assignment(),
+            new Assignment,
             $selectedTeacherId,
             $selectedStaffId,
             $selectedAssignee,
@@ -101,7 +103,7 @@ class AssignmentController extends Controller
                 'status' => Assignment::STATUS_ACTIVE,
             ]);
 
-            app(\App\Services\InventoryUnitService::class)->assign($property, $assignment, $requestedQuantity,
+            app(InventoryUnitService::class)->assign($property, $assignment, $requestedQuantity,
                 $request->boolean('select_units') || $request->has('unit_ids') ? $request->input('unit_ids', []) : null);
             $property->decrement('quantity', $requestedQuantity);
             $property->refresh();
@@ -206,7 +208,7 @@ class AssignmentController extends Controller
                 $this->releasePropertyUnits($assignment);
                 $currentProperty->increment('quantity', (int) $assignment->quantity_assigned);
                 $targetProperty->refresh();
-                app(\App\Services\InventoryUnitService::class)->assign($targetProperty, $assignment, $requestedQuantity, $request->input('unit_ids', []));
+                app(InventoryUnitService::class)->assign($targetProperty, $assignment, $requestedQuantity, $request->input('unit_ids', []));
                 $targetProperty->decrement('quantity', $requestedQuantity);
             } elseif ($currentProperty->id === $targetProperty->id) {
                 $quantityDifference = $requestedQuantity - (int) $assignment->quantity_assigned;
@@ -323,9 +325,9 @@ class AssignmentController extends Controller
         ?int $selectedTeacherId = null,
         ?int $selectedStaffId = null,
         ?User $selectedAssignee = null,
-    ): array
-    {
-        $fixedAssignee = !$assignment->exists && $selectedAssignee !== null;
+    ): array {
+        $fixedAssignee = ! $assignment->exists && $selectedAssignee !== null;
+
         return [
             'assignment' => $assignment,
             'properties' => $this->assignmentProperties($assignment),
@@ -348,11 +350,15 @@ class AssignmentController extends Controller
         return Property::query()
             ->with(['units' => fn ($query) => $query->where(function ($units) use ($assignment) {
                 $units->where('status', PropertyUnit::STATUS_AVAILABLE);
-                if ($assignment->exists) $units->orWhere('assignment_id', $assignment->id);
+                if ($assignment->exists) {
+                    $units->orWhere('assignment_id', $assignment->id);
+                }
             })->orderBy('id')])
             ->where(function ($query) use ($assignment) {
                 $query->where('quantity', '>', 0);
-                if ($assignment->exists) $query->orWhere('id', $assignment->property_id);
+                if ($assignment->exists) {
+                    $query->orWhere('id', $assignment->property_id);
+                }
             })
             ->where(function ($query) use ($assignment) {
                 $query->whereIn('status', [Property::STATUS_AVAILABLE, Property::STATUS_ASSIGNED]);
@@ -418,7 +424,7 @@ class AssignmentController extends Controller
 
     private function assignPropertyUnits(Property $property, Assignment $assignment, int $quantity): void
     {
-        app(\App\Services\InventoryUnitService::class)->assign($property, $assignment, $quantity);
+        app(InventoryUnitService::class)->assign($property, $assignment, $quantity);
     }
 
     private function releasePropertyUnits(Assignment $assignment, ?int $quantity = null): void
@@ -447,5 +453,4 @@ class AssignmentController extends Controller
                 'updated_at' => now(),
             ]);
     }
-
 }
