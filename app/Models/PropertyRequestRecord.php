@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PropertyRequestRecord extends Model
 {
@@ -29,6 +30,7 @@ class PropertyRequestRecord extends Model
     protected $table = 'property_requests';
 
     protected $fillable = [
+        'reference_no',
         'requested_by',
         'request_type',
         'processed_by',
@@ -80,6 +82,49 @@ class PropertyRequestRecord extends Model
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(PropertyRequestItem::class, 'property_request_id')->orderBy('id');
+    }
+
+    public function ensureItems(): void
+    {
+        if ($this->items()->exists()) {
+            return;
+        }
+
+        $propertyId = $this->selected_property_id
+            ?: $this->inventory?->property_id
+            ?: $this->replacementAssignment?->property_id;
+
+        $this->items()->create([
+            'property_id' => $propertyId,
+            'inventory_id' => $this->inventory_id,
+            'requested_item_name' => $this->requested_item_name,
+            'requested_quantity' => max(1, (int) $this->requested_quantity),
+            'approved_property_id' => $this->selected_property_id,
+            'assignment_id' => $this->assignment_id,
+        ]);
+    }
+
+    public function getReferenceNumberAttribute(): string
+    {
+        return $this->reference_no ?: 'PR-'.($this->created_at?->format('Y') ?? now()->format('Y')).'-'.str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
+    }
+
+    public function getItemsSummaryAttribute(): string
+    {
+        $names = $this->relationLoaded('items')
+            ? $this->items->pluck('requested_item_name')
+            : $this->items()->pluck('requested_item_name');
+
+        if ($names->isEmpty()) {
+            return $this->requested_item_name;
+        }
+
+        return $names->take(2)->join(', ').($names->count() > 2 ? ' +'.($names->count() - 2).' more' : '');
     }
 
     public function reviewedBy(): BelongsTo

@@ -12,10 +12,16 @@ use Illuminate\Validation\ValidationException;
 class RequestAssignmentService
 {
     // Called inside the request's transaction, after locking the request record.
-    public function assign(PropertyRequestRecord $request, int $propertyId, User $issuer, ?array $unitIds = null): Assignment
-    {
+    public function assign(
+        PropertyRequestRecord $request,
+        int $propertyId,
+        User $issuer,
+        ?array $unitIds = null,
+        ?int $quantity = null,
+        ?string $itemName = null,
+    ): Assignment {
         $property = Property::query()->lockForUpdate()->findOrFail($propertyId);
-        $quantity = $request->requested_quantity;
+        $quantity = $quantity ?? $request->requested_quantity;
         if ($quantity < 1 || $property->quantity < $quantity || in_array($property->status, [Property::STATUS_DISPOSED, Property::STATUS_FOR_DISPOSAL], true)) {
             throw ValidationException::withMessages(['property_id' => 'This property does not have enough assignable stock. Choose another property or mark the request as awaiting stock.']);
         }
@@ -36,7 +42,7 @@ class RequestAssignmentService
             'location' => $property->location,
             'department' => $property->department,
             'location_id' => $property->location_id,
-            'remarks' => 'Approved property request #'.$request->id.': '.$request->requested_item_name,
+            'remarks' => 'Approved property request '.$request->reference_number.': '.($itemName ?: $request->requested_item_name),
             'status' => Assignment::STATUS_ACTIVE,
         ]);
         app(InventoryUnitService::class)->assign($property, $assignment, $quantity, $unitIds);

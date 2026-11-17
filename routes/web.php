@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/property-requests/{propertyRequest}/receipt', [PropertyRequestController::class, 'receipt'])->name('property-requests.receipt');
+    Route::get('/property-requests/{propertyRequest}/pdf', [PropertyRequestController::class, 'pdf'])->name('property-requests.pdf');
 
     Route::middleware('role:admin')->group(function () {
         Route::get('/admin/dashboard', [DashboardController::class, 'admin'])->name('admin.dashboard');

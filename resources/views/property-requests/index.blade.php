@@ -8,6 +8,7 @@
     <div class="dashboard-card p-4">
         <div class="mb-4">
             <h2 class="h4 mb-1">Teacher Property Requests</h2>
+            <p class="text-muted mb-0">Open a request to review all items submitted under one reference number.</p>
         </div>
 
         <div class="d-flex flex-wrap gap-2 mb-3">
@@ -23,23 +24,34 @@
             <table class="table table-hover align-middle">
                 <thead>
                     <tr>
+                        <th>Reference</th>
                         <th>Requester</th>
-                        <th>Requested Item</th>
-                        <th>Quantity</th>
+                        <th>Requested Items</th>
+                        <th>Total Qty</th>
                         <th>Needed By</th>
                         <th>Status</th>
                         <th>Processed By</th>
-                        <th class="text-end">Action</th>
+                        <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($propertyRequests as $propertyRequest)
                         <tr>
+                            <td class="fw-semibold text-nowrap">{{ $propertyRequest->reference_number }}</td>
                             <td>
                                 <a href="{{ route('property-requests.show', $propertyRequest) }}" class="fw-semibold">{{ $propertyRequest->requester?->name ?: 'N/A' }}</a>
-                                <small class="text-muted">{{ $propertyRequest->requester?->email ?: 'N/A' }}</small>
+                                <small class="text-muted d-block">{{ $propertyRequest->requester?->email ?: 'N/A' }}</small>
                             </td>
-                            <td>{{ $propertyRequest->requested_item_name }}</td>
+                            <td>
+                                <ul class="list-unstyled mb-0">
+                                    @foreach ($propertyRequest->items as $item)
+                                        <li>
+                                            <span class="fw-semibold">{{ $item->requested_item_name }}</span>
+                                            <span class="text-muted">× {{ $item->requested_quantity }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </td>
                             <td>{{ $propertyRequest->requested_quantity }}</td>
                             <td>{{ optional($propertyRequest->needed_by)->format('F d, Y') ?: 'N/A' }}</td>
                             <td>
@@ -48,13 +60,14 @@
                                 </span>
                             </td>
                             <td>{{ $propertyRequest->processedBy?->name ?: 'Pending review' }}</td>
-                            <td class="text-end">
+                            <td class="text-end text-nowrap">
                                 <a href="{{ route('property-requests.show', $propertyRequest) }}" class="btn btn-sm btn-outline-primary">{{ auth()->user()->isStaff() && $propertyRequest->status === 'approved' ? 'Assign Property' : 'Open Request' }}</a>
+                                <a href="{{ route('property-requests.pdf', $propertyRequest) }}" class="btn btn-sm btn-outline-secondary">PDF</a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">No property requests found.</td>
+                            <td colspan="8" class="text-center py-5 text-muted">No property requests found.</td>
                         </tr>
                     @endforelse
                 </tbody>

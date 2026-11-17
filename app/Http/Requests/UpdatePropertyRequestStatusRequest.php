@@ -22,12 +22,18 @@ class UpdatePropertyRequestStatusRequest extends FormRequest
                 ? [PropertyRequestRecord::STATUS_REVIEWED, PropertyRequestRecord::STATUS_FULFILLED]
                 : [PropertyRequestRecord::STATUS_APPROVED, PropertyRequestRecord::STATUS_REJECTED, PropertyRequestRecord::STATUS_AWAITING_STOCK])],
             'response_notes' => ['required_if:status,rejected,awaiting_stock', 'nullable', 'string', 'max:3000'],
-            'property_id' => ['required_if:status,approved,fulfilled', 'nullable', 'integer', 'exists:properties,id'],
+            'property_id' => ['nullable', 'integer', 'exists:properties,id'],
             'department' => ['nullable', 'string', 'max:255'],
             'serial_numbers' => ['prohibited'],
             'unit_ids' => ['sometimes', 'array', 'max:1000'],
             'unit_ids.*' => ['required', 'integer', 'distinct'],
             'select_units' => ['sometimes', 'boolean'],
+            'items' => ['sometimes', 'array'],
+            'items.*.property_id' => ['nullable', 'integer', 'exists:properties,id'],
+            'items.*.department' => ['nullable', 'string', 'max:255'],
+            'items.*.unit_ids' => ['sometimes', 'array', 'max:1000'],
+            'items.*.unit_ids.*' => ['required', 'integer', 'distinct'],
+            'items.*.select_units' => ['sometimes', 'boolean'],
         ];
     }
 }
